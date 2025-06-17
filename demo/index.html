@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bootstrap demo</title>
+    <link href="../vendor/twbs/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="../vendor/twbs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <h1>Hello, world!</h1>
+    <div class="mb-3">
+        <input type="number" data-step=".01" data-min="-10" max="10" value="0">
+    </div>
+    <input type="number" data-step="1" data-min="0" data-max="10" value="5">
+
+</div>
+<script src="../vendor/components/jquery/jquery.min.js"></script>
+<script src="../vendor/twbs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../dist/bs-touchspin.js"></script>
+<script>
+    $(document).ready(function () {
+
+        const input = $('input').bsTouchspin();
+        input
+            .on('start.bs.touchspin', function (e, value) {
+                console.log('start', value)
+            })
+            .on('stop.bs.touchspin', function (e, value) {
+                console.log('stop', value)
+            })
+        // .on('change.bs.touchspin', function (e, value) {
+        //     console.log('change', value)
+        // })
+    })
+
+
+</script>
+</body>
+</html>
