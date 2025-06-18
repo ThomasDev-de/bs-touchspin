@@ -141,7 +141,7 @@ Below is the full list of default options for the `bsTouchspin` plugin:
 | `formatter`                | Formatting style for the input value. Acceptable values: `'number'`, `'currency'`, or `'percent'`. | `'number'`                                   |
 | `onInit`                   | Callback function, executed during initialization.                                                 | `function (value) {}`                        |
 | `onStart`                  | Callback function, executed when incrementing or decrementing starts.                              | `function (value) {}`                        |
-| `onStop`                   | Callback function, executed when incrementing or decrementing stops.                               | `function (value) {}`                        |
+| `onStop`                   | Callback function, executed when incrementing or decrementing stops.                               | `function (value, diff) {}`                  |
 
 ---
 
