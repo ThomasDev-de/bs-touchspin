@@ -6,24 +6,53 @@
     <title>Bootstrap demo</title>
     <link href="../vendor/twbs/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="../vendor/twbs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css" rel="stylesheet">
+
+    <!--    <link href=" https://cdn.jsdelivr.net/npm/bootswatch@5.3.6/dist/materia/bootstrap.min.css " rel="stylesheet">-->
 </head>
 <body>
 <div class="container py-5">
     <h1>$.fn.bsTouchspin</h1>
     <hr>
-    <div class="d-flex gap-5 p-5">
+    <div class="d-flex flex-wrap gap-5 p-5">
         <form>
-            <div class="mb-3">
-                <label for="input_1" class="form-label">min: 0, max: 100, step: .01</label>
-                <input type="number" data-step="0.01" data-min="0" data-max="100" value="0" id="input_1">
+            <div class="card card-body">
+                <div class="mb-3">
+                    <label for="input_1" class="form-label d-none">min: 0, max: 100, step: .01</label>
+                    <input type="number" data-step="0.01" data-min="0" data-max="100" value="0" id="input_1">
+                </div>
+                <pre><code class="javascript">
+$('#input_1').bsTouchspin({
+    min: 0,
+    max: 100,
+    step: .01,
+    allowInput: false,
+    formatter: 'percent'
+});</code></pre>
             </div>
-            <div class="mb-3">
-                <label for="input_2" class="form-label">min: -10000, max: 10000, step: .01</label>
-                <input type="number" data-step=".01" data-min="-10000" data-max="10000" value="5" id="input_2">
+            <div class="card card-body">
+                <div class="mb-3">
+                    <label for="input_2" class="form-label d-none">min: -10000, max: 10000, step: .01</label>
+                    <input type="number" data-step=".01" data-min="-10000" data-max="10000" value="5" id="input_2">
+                </div>
+                <pre><code class="javascript">
+$('#input_2').bsTouchspin({
+    size: 'sm'
+    min: -10000,
+    max: 10000,
+    step: .01,
+    formatter: 'currency'
+});</code></pre>
             </div>
-            <div class="mb-3">
-                <label for="input_3" class="form-label">min: null, max: null, step: null|any</label>
-                <input type="number"  id="input_3" data-allow-input="true">
+            <div class="card card-body">
+                <div class="mb-3">
+                    <label for="input_3" class="form-label d-none">min: null, max: null, step: null|any</label>
+                    <input type="number" id="input_3" data-allow-input="true">
+                </div>
+                <pre><code class="javascript">
+$('#input_3').bsTouchspin({
+    size: 'lg'
+});</code></pre>
             </div>
         </form>
         <pre id="pre_events" class="font-monospace text-light flex-fill" style="background: black"></pre>
@@ -31,54 +60,46 @@
 
 
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+
 <script src="../vendor/components/jquery/jquery.min.js"></script>
 <script src="../vendor/twbs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../dist/bs-touchspin.js"></script>
 <script>
     $(document).ready(function () {
+        // Initialisiere Syntax-Hervorhebung
+        hljs.highlightAll();
+        $.bsTouchspin.setConfig({
+            locale: 'de-DE'
+        })
+        $(document)
+            .on('init.bs.touchspin', 'input', function (e, value) {
+                log('init.bs.touchspin', value);
+            })
+            .on('start.bs.touchspin', 'input', function (e, value) {
+                log('start.bs.touchspin', value);
+            })
+            .on('stop.bs.touchspin', 'input', function (e, value, diff) {
+                log('stop.bs.touchspin', value, diff);
+            });
 
         const debugWrapper = '#pre_events';
-        function formatMoney(value, decimals) {
-            return new Intl.NumberFormat('de-DE', {
-                style: 'currency',
-                currency: 'EUR',
-                minimumFractionDigits: decimals,
-                maximumFractionDigits: decimals
-            }).format(value);
-        }
 
-        function formatPercent(value, decimals) {
-            // Überprüfen, ob der Wert größer als 1 ist, und gegebenenfalls durch 100 teilen
-            // if (value > 1) {
-            //     value = value / 100;
-            // }
 
-            // Nutzt number-Formatierung und hängt manuell ein Prozentzeichen an
-            return new Intl.NumberFormat('de-DE', {
-                minimumFractionDigits: decimals,
-                maximumFractionDigits: decimals
-            }).format(value) + ' %';
-
-        }
-
-         $('#input_1').bsTouchspin({
-            buttons: {
-                up: {
-                    class: 'btn btn-success rounded-end-pill fw-bold',
-                },
-                down: {
-                    class: 'btn btn-outline-light rounded-start-pill fw-bold',
-                }
-            },
-            formatter:formatPercent
+        $('#input_1').bsTouchspin({
+            allowInput: false,
+            formatter: 'percent'
         });
-         $('#input_2').bsTouchspin({
-             size: 'sm',
-            formatter:formatMoney
+
+        $('#input_2').bsTouchspin({
+            size: 'sm',
+            formatter: 'currency'
         });
-         $('#input_3').bsTouchspin({
-             size: 'lg',
-         });
+
+        $('#input_3').bsTouchspin({
+            size: 'lg',
+        });
 
         function log(message, ...values) {
             // Values in lesbare Form bringen (z.B. JSON für Objekte oder direkt als String für primitive Werte)
@@ -91,20 +112,6 @@
                 html: `${message} ${formattedValues}`, // Message + Werte
             }).appendTo(debugWrapper);
         }
-
-        $(document)
-            .on('error.bs.touchspin', 'input', function (e, value) {
-                log('error.bs.touchspin', value);
-            })
-            .on('init.bs.touchspin', 'input', function (e, value) {
-                log('init.bs.touchspin', value);
-            })
-            .on('start.bs.touchspin', 'input', function (e, value) {
-                log('start.bs.touchspin', value);
-            })
-            .on('stop.bs.touchspin', 'input', function (e, value, diff) {
-                log('stop.bs.touchspin', value, diff);
-            });
     })
 
 

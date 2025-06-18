@@ -1,12 +1,24 @@
 {
   "name": "webcito/bs-touchspin",
   "version": "1.0.0",
-  "description": "description",
+  "description": "A jQuery touchspin input plugin requiring Bootstrap 5.",
+  "keywords": [
+    "jquery",
+    "bootstrap",
+    "bootstrap5",
+    "touchspin",
+    "spinner",
+    "input",
+    "ui",
+    "bootstrap-icons",
+    "number-input",
+    "widget"
+  ],
   "minimum-stability": "stable",
-  "license": "proprietary",
+  "license": "MIT",
   "authors": [
     {
-      "name": "thomas",
+      "name": "Thomas",
       "email": "email@example.com"
     }
   ],
