@@ -111,8 +111,8 @@ $('#spinner').bsTouchspin({
     onStart: function (value) {
         console.log('Started with value:', value);
     },
-    onStop: function (value) {
-        console.log('Stopped with value:', value);
+    onStop: function (value, diff) {
+        console.log('Stopped with value:', value, 'diff to start: ', diff);
     }
 });
 ```
