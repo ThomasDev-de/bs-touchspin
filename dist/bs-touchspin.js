@@ -1,19 +1,59 @@
 (function ($) {
     "use strict";
-    const wrapperClass = 'bs-touchspin-wrapper';
 
     $.bsTouchspin = {
         defaults: {
-            step: 1,
+            size: null, // null | sm | lg
+            step: "any",
             min: null,
             max: null,
             prefix: null,
-            postfix: null
+            postfix: null,
+            allowInput: true,
+            buttons: {
+                up: {
+                    class: 'btn btn-secondary',
+                    icon: 'bi bi-plus-lg',
+                    iconSetZero: 'bi bi-trash',
+                },
+                down: {
+                    class: 'btn btn-secondary',
+                    icon: 'bi bi-dash-lg',
+                    iconSetZero: 'bi bi-trash',
+                }
+            },
+            formatter: function (value, decimals) {
+                return formatNumber(value, decimals);
+            },
+            onStart: function (value) {
+            },
+            onStop: function (value) {
+            }
+
+        },
+        config: {
+            minSpeed: 1,
+            startSpeed: 600,
+            delay: 1000
         }
     };
 
+    const wrapperClass = 'bs-touchspin-wrapper';
+    const wrapperClassFormatted = 'bs-touchspin-formatted-wrapper';
+
+    function formatNumber(number, decimalPlaces = 2) {
+        return new Intl.NumberFormat('de-DE', {
+            minimumFractionDigits: decimalPlaces,
+            maximumFractionDigits: decimalPlaces
+        }).format(number);
+    }
+
     function getSettings($input) {
         return $input.data('touchspin');
+    }
+
+    function setSettings($input, settings) {
+        $input.data('touchspin', settings);
     }
 
     const getWrapper = function ($input) {
@@ -21,232 +61,413 @@
     }
 
     function getDecimalPlaces(num) {
-        if (!isNaN(num) && num.toString().indexOf('.') !== -1) {
-            return num.toString().split('.')[1].length;
+        if (typeof num === "string" && num.includes(".")) {
+            return num.split(".")[1].length; // Zähle die Nachkommastellen im String
+        } else if (!isNaN(num) && num.toString().includes(".")) {
+            return num.toString().split(".")[1].length; // Zähle Nachkommastellen bei Zahl
         }
         return 0; // Keine Dezimalstellen
     }
 
+    function updateButtonStates($input) {
+        const wrapper = getWrapper($input);
+        const settings = getSettings($input);
+        const btnDown = wrapper.find('[data-touchspin-down]');
+        const btnUp = wrapper.find('[data-touchspin-up]');
+        const step = settings.step; // Schrittweite
+
+        if (step === "any") {
+            // Bei "any" keine Deaktivierung der Buttons vornehmen
+            btnDown.prop('disabled', false);
+            btnUp.prop('disabled', false);
+            return;
+        }
+
+        const value = parseFloat($input.val()) || 0;
+        const decimals = settings.decimals || 0;
+
+        // Rundungsfunktion mit Absicherung
+        const roundToDecimals = (val) => {
+            const num = parseFloat(val);
+            return isNaN(num) ? 0 : Number(num.toFixed(decimals));
+        };
+
+        const roundedValue = roundToDecimals(value);
+        const stepAboveZero = roundToDecimals(step);
+        const stepBelowZero = roundToDecimals(-step);
+
+        const btnUpIcon = btnUp.find('i');
+        const btnDownIcon = btnDown.find('i');
+        // Symbole für Up-/Down-Button anpassen
+        if (roundedValue === stepBelowZero) {
+            btnUpIcon
+                .removeClass(settings.buttons.up.icon)
+                .addClass(settings.buttons.up.iconSetZero);
+        } else {
+            btnUpIcon
+                .removeClass(settings.buttons.up.iconSetZero)
+                .addClass(settings.buttons.up.icon);
+        }
+
+        if (roundedValue === stepAboveZero) {
+            btnDownIcon
+                .removeClass(settings.buttons.down.icon)
+                .addClass(settings.buttons.down.iconSetZero);
+        } else {
+            btnDownIcon
+                .removeClass(settings.buttons.down.iconSetZero)
+                .addClass(settings.buttons.down.icon);
+        }
+
+        // Aktivieren/Deaktivieren der Buttons basierend auf min/max
+        if (settings.min !== null && roundedValue <= roundToDecimals(settings.min)) {
+            btnDown.prop('disabled', true);
+        } else {
+            btnDown.prop('disabled', false);
+        }
+
+        if (settings.max !== null && roundedValue >= roundToDecimals(settings.max)) {
+            btnUp.prop('disabled', true);
+        } else {
+            btnUp.prop('disabled', false);
+        }
+    }
+
+    function validateValue($input, isFinal = false) {
+        const wrapper = getWrapper($input);
+        const settings = getSettings($input);
+        let inputValue = $input.val();
+        const vars = getVars($input);
+
+        inputValue = inputValue.replace(',', '.');
+
+        let numericValue = parseFloat(inputValue);
+        if (isNaN(numericValue)) {
+            numericValue = isFinal ? 0 : null;
+        }
+
+        const decimals = settings.decimals || 0;
+
+        if (numericValue !== null) {
+            numericValue = Number(numericValue.toFixed(decimals));
+
+            if (settings.min !== null && numericValue < settings.min) {
+                numericValue = settings.min;
+            }
+            if (settings.max !== null && numericValue > settings.max) {
+                numericValue = settings.max;
+            }
+        } else {
+            numericValue = 0;
+        }
+
+        $input.val(numericValue.toFixed(decimals));
+
+        if (isFinal) {
+            const startValue = vars.startValue || 0;
+            const stopValue = numericValue;
+            const diff = parseFloat((stopValue - startValue).toFixed(decimals)); // Auf 2 Nachkommastellen runden
+            vars.startValue = null;
+            $input.trigger('stop.bs.touchspin', [stopValue, diff]);
+            if (typeof settings.onStop === 'function') {
+                settings.onStop(stopValue, diff); // Custom Callback ausführen
+            }
+            setVars($input, vars);
+        }
+
+        updateButtonStates($input);
+
+        return numericValue;
+    }
+
+    function changeValueByBtnClick($input) {
+        const settings = getSettings($input); // Hole die Einstellungen
+        const vars = getVars($input); // Variablen (Richtung etc.)
+        let value = parseFloat($input.val()) || 0; // Aktuellen Wert holen
+
+        // Funktion zur Rundung auf eine bestimmte Anzahl von Dezimalstellen
+        const roundToDecimals = (num, decimals) => {
+            const factor = Math.pow(10, decimals);
+            return Math.round(num * factor) / factor;
+        };
+
+        if (settings.step === "any") {
+            // Dynamische Schrittweite basierend auf vorhandenen Dezimalstellen
+            const decimals = getDecimalPlaces(value);
+            value += vars.direction * Math.pow(10, -decimals); // Passe den Wert dynamisch an
+            value = roundToDecimals(value, decimals).toFixed(decimals); // Runde und erhalte die Null(en)
+        } else {
+            // Normale Schrittweite verwenden
+            const decimals = settings.decimals || 0;
+            value = (value + vars.direction * settings.step);
+            value = roundToDecimals(value, decimals).toFixed(decimals); // Runde und erhalte die Null(en)
+        }
+
+        // Prüfung auf Mindest- und Höchstgrenze
+        if (settings.min !== null && parseFloat(value) < settings.min) {
+            value = parseFloat(settings.min).toFixed(settings.decimals || 0); // Begrenze auf Mindestwert
+        }
+
+        if (settings.max !== null && parseFloat(value) > settings.max) {
+            value = parseFloat(settings.max).toFixed(settings.decimals || 0); // Begrenze auf Maximalwert
+        }
+
+        // Aktualisiere den Wert im Input-Feld
+        $input.val(value); // Setze den Wert mit der korrekten Anzeige
+        toggleFormatted($input, true);
+        // Aktualisiere den Zustand (Button aktivieren/deaktivieren etc.)
+        updateButtonStates($input);
+    }
+
+    function getVars($input) {
+        if (!$input.data('vars')) {
+            $input.data('vars', {
+                stepUnknown: false,
+                timeout: null,       // Für wiederholende Aktionen
+                interval: null,      // Intervall für wiederholende Funktion
+                stopDelay: null,     // Verzögerung für Stop-Event
+                minSpeed: $.bsTouchspin.config.minSpeed,
+                speed: $.bsTouchspin.config.startSpeed,   // Geschwindigkeit wird aktuallisiert
+                isStarted: false,     // Flag, ob eine Änderung gestartet wurde
+                direction: null,
+                startValue: null,
+            });
+        }
+        return $input.data('vars');
+    }
+
+    function setVars($input, vars) {
+        $input.data('vars', vars);
+    }
+
+    /**
+     * Starts a repeating increment in a specific direction with decreasing interval time.
+     *
+     * @param {jQuery} $input - The current input element.
+     * @param {number} direction - Direction of the adjustment (+1 or -1).
+     */
+    function startIncrement($input) {
+        const vars = getVars($input); // Holen der Instanz-Variablen
+
+        if (vars.speed >= vars.minSpeed) {
+            vars.speed *= 0.9; // Geschwindigkeit verringern um 10%
+        }
+
+        changeValueByBtnClick($input);
+
+        vars.interval = setTimeout(function () {
+            startIncrement($input);
+        }, vars.speed);
+
+        setVars($input, vars);
+    }
 
     function events($input) {
         const wrapper = getWrapper($input);
         const settings = getSettings($input);
-        const btnCheck = wrapper.find('[data-touchspin-man]');
+        // const btnCheck = wrapper.find('[data-touchspin-man]');
         const btnDown = wrapper.find('[data-touchspin-down]');
         const btnUp = wrapper.find('[data-touchspin-up]');
-        let directionText;
-        let timeout = null; // Verzögerung vor der wiederholenden Aktion
-        let interval = null; // Für wiederholende Funktion
-        let stopDelay = null; // Verzögerung für das Stop-Event
-        let speed = 500; // Startgeschwindigkeit in Millisekunden
-        const minSpeed = 1; // Minimal erlaubte Geschwindigkeit (höchste Geschwindigkeit)
-        const stopEventDelay = 600; // Verzögerung für das Stop-Event in Millisekunden
 
-        // Funktion zur Prüfung und Aktivierung/Deaktivierung der Buttons
-        // Funktion zur Prüfung und Aktivierung/Deaktivierung der Buttons
-        function updateButtonStates() {
-            const value = parseFloat($input.val()) || 0; // Aktueller Wert im Input
-            const step = settings.step || 1; // Schrittweite (Standardwert: 1)
-            const decimals = settings.decimals || 0; // Anzahl der Rundungsstellen (Standard: 0 Dezimalstellen)
-
-            // Rundungsfunktion mit Absicherung
-            const roundToDecimals = (val) => {
-                const num = parseFloat(val); // String zu Zahl konvertieren
-                return isNaN(num) ? 0 : Number(num.toFixed(decimals)); // Fallback für ungültige Werte
-            };
-
-            // Rundung des aktuellen Werts
-            const roundedValue = roundToDecimals(value);
-
-            console.log({ value, roundedValue, step });
-
-            // **Logik für Trash-Icon**
-            // Schritt ausgehend von 0 überprüfen
-            const stepAboveZero = roundToDecimals(step); // Ein Schritt über 0
-            const stepBelowZero = roundToDecimals(-step); // Ein Schritt unter 0
-
-            // Up-Button → Trash-Icon, wenn genau ein Schritt unterhalb von 0
-            if (roundedValue === stepBelowZero) {
-                btnUp.find('i').removeClass('bi-plus-lg').addClass('bi-trash3');
-            } else {
-                btnUp.find('i').removeClass('bi-trash3').addClass('bi-plus-lg'); // Standard-Symbol wiederherstellen
-            }
-
-            // Down-Button → Trash-Icon, wenn genau ein Schritt oberhalb von 0
-            if (roundedValue === stepAboveZero) {
-                btnDown.find('i').removeClass('bi-dash-lg').addClass('bi-trash3');
-            } else {
-                btnDown.find('i').removeClass('bi-trash3').addClass('bi-dash-lg'); // Standard-Symbol wiederherstellen
-            }
-
-            // **Deaktivierung der Buttons**
-            // Down-Button deaktivieren, wenn `value` kleiner oder gleich 0
-            if (roundedValue <= 0) {
-                btnDown.prop('disabled', true);
-            } else {
-                btnDown.prop('disabled', false);
-            }
-
-            // Up-Button deaktivieren, wenn der Wert größer oder gleich einer logischen Obergrenze ist
-            if (settings.max !== null && roundedValue >= roundToDecimals(settings.max)) {
-                btnUp.prop('disabled', true);
-            } else {
-                btnUp.prop('disabled', false);
-            }
-        }
-
-        // Funktion zur Überprüfung und Anpassung von Werten
-        function validateValue(isFinal = false) {
-            let inputValue = $input.val(); // Rohwert aus dem Input-Feld (String)
-
-            // Unterstützung für Dezimaltrennzeichen (z. B. Komma in Deutschland)
-            const decimals = settings.decimals || 0; // Anzahl der erlaubten Dezimalstellen
-            // const localizedValue = inputValue.replace(',', '.'); // Ersetze ',' durch '.' für parseFloat()
-
-            // Versuche, den Wert in eine Zahl zu konvertieren
-            let numericValue = parseFloat(inputValue);
-
-            // Ungültige oder unvollständige Werte während der finalen Eingabe
-            if (isNaN(numericValue)) {
-                numericValue = isFinal ? 0 : null; // Bei finalen Eingaben ungültige Werte auf 0 setzen
-            }
-
-            // Runden nach der definierten Anzahl von Dezimalstellen
-            if (numericValue !== null) {
-                numericValue = Number(numericValue.toFixed(decimals));
-            }
-
-            // Prüfung auf Mindest- und Höchstgrenze
-            if (numericValue !== null) {
-                if (settings.min !== null && numericValue < settings.min) {
-                    numericValue = settings.min; // Auf Mindestwert setzen
-                }
-                if (settings.max !== null && numericValue > settings.max) {
-                    numericValue = settings.max; // Auf Maximalwert setzen
-                }
-            }
-
-            // Update des Eingabefeldes (immer, auch während der Eingabe!)
-            if (numericValue !== null) {
-                $input.val(numericValue.toFixed(decimals)); // Aktualisiere den Input auf den gültigen Wert
-            }
-
-            // Trigger Events nur bei finalem Abschluss
-            if (isFinal) {
-                btnCheck.hide(); // Verstecke das Prüfungs-Icon (falls vorhanden)
-                $input.trigger('stop.bs.touchspin', numericValue); // Custom Event
-            }
-
-            // Aktualisiere den Status der Buttons
-            updateButtonStates();
-        }
-
-        // Funktion für das schrittweise Ändern des Wertes
-        function changeValue(direction) {
-            let value = parseFloat($input.val()) || 0; // Aktuellen Wert holen
-            const decimals = settings.decimals || 0; // Dezimalstellen
-            value = (value + direction * settings.step).toFixed(decimals); // Wert berechnen und runden
-
-            // Prüfung auf Mindest- und Höchstgrenze
-            if (settings.min !== null && parseFloat(value) < settings.min) {
-                value = settings.min.toFixed(decimals); // Auf `min` setzen und formatieren
-            }
-            if (settings.max !== null && parseFloat(value) > settings.max) {
-                value = settings.max.toFixed(decimals); // Auf `max` setzen und formatieren
-            }
-
-            $input.val(value); // Gerundeten und formatierten Wert ins Feld schreiben
-
-            // Aktualisiere den Status der Buttons
-            updateButtonStates();
-        }
-
-        // Funktion, welche Geschwindigkeit erhöht und Wert ändert
-        function startIncrement(direction) {
-            if (speed > minSpeed) {
-                speed *= 0.9; // Geschwindigkeit schrittweise erhöhen (10% schneller)
-            }
-
-            changeValue(direction);
-
-            // Rekursive Verzögerung, um Geschwindigkeit anzupassen
-            interval = setTimeout(function () {
-                startIncrement(direction);
-            }, speed);
-        }
-
-        // Events für das Down- und Up-Button-Handling
         wrapper
-            .on('mousedown touchstart', '[data-touchspin-man]', function (e) {
+            .on('click', '.' + wrapperClassFormatted, function (e) {
                 e.preventDefault();
-                btnCheck.hide();
-                validateValue(true);
+                const formattedWrapper = $(e.currentTarget);
+                const input = formattedWrapper.closest('.' + wrapperClass).find('input');
+                toggleFormatted(input, false);
             })
-            .on('mousedown touchstart', '[data-touchspin-down]', function (e) {
+            .on('mousedown touchstart', '[data-touchspin-down], [data-touchspin-up]', function (e) {
                 e.preventDefault();
-                btnCheck.hide();
-                $input.prop('readonly', true);
-                let direction = -1; // Runterzählen
-                directionText = 'down';
-                speed = 500; // Geschwindigkeit zurücksetzen
+                // toggleFormatted($input, true);
+                const btn = $(e.currentTarget);
+                if (btn.prop('disabled')) {
+                    return;
+                }
 
-                let startValue = parseFloat($input.val()) || 0;
-                // Start-Event auslösen
-                $input.trigger('start.bs.touchspin', [startValue]);
+                const input = btn.closest('.' + wrapperClass).find('input');
 
-                // Sofortiger Anfangswert ändern
-                changeValue(direction);
+                // Stoppe alle laufenden Aktionen
+                clearAllTimers(input);
 
-                // Verzögerter Start für Wiederholung
-                timeout = setTimeout(function () {
-                    startIncrement(direction); // Wiederholende Funktion starten
-                }, 300); // Nach 300ms beginnen
-            })
-            .on('mousedown touchstart', '[data-touchspin-up]', function (e) {
-                e.preventDefault();
-                btnCheck.hide();
-                $input.prop('readonly', true);
-                let direction = 1; // Hochzählen
-                directionText = 'up';
-                speed = 500; // Geschwindigkeit zurücksetzen
+                const vars = getVars(input);
+                // btnCheck.hide();
+                input.prop('readonly', true);
 
-                let startValue = parseFloat($input.val()) || 0;
+                vars.direction = btn.is(btnDown) ? -1 : 1;
+                vars.speed = $.bsTouchspin.config.startSpeed; // Reset Speed
 
-                // Start-Event auslösen
-                $input.trigger('start.bs.touchspin', [startValue]);
+                if (!vars.isStarted) {
+                    // Trigger 'start.bs.touchspin' only on first start
+                    const startValue = parseFloat(input.val()) || 0;
+                    input.trigger('start.bs.touchspin', [startValue]);
+                    vars.startValue = startValue;
+                    vars.isStarted = true;
 
-                // Sofortiger Anfangswert ändern
-                changeValue(direction);
+                    if (typeof settings.onStart === 'function') {
+                        settings.onStart(startValue); // Execute custom callback
+                    }
+                    setVars(input, vars);
+                }
 
-                // Verzögerter Start für Wiederholung
-                timeout = setTimeout(function () {
-                    startIncrement(direction); // Wiederholende Funktion starten
-                }, 300); // Nach 300ms beginnen
+                changeValueByBtnClick(input);
+
+                // Wiederholende Funktion starten
+                vars.timeout = setTimeout(function () {
+                    startIncrement(input);
+                }, 300);
+
+                // Variablen aktualisieren
+                setVars(input, vars);
             })
             .on('mouseup mouseleave touchend', '[data-touchspin-down], [data-touchspin-up]', function (e) {
                 e.preventDefault();
-                $input.prop('readonly', false);
-                // Stopp aller laufenden Aktionen
-                clearTimeout(timeout);
-                clearTimeout(interval);
+                const btn = $(e.currentTarget);
+                if (btn.prop('disabled')) {
+                    return;
+                }
+                const input = btn.closest('.' + wrapperClass).find('input');
 
-                // Verzögertes Auslösen des Stop-Events
-                clearTimeout(stopDelay); // Eventuell laufendes Delay abbrechen
-                stopDelay = setTimeout(function () {
-                    let stopValue = parseFloat($input.val()) || 0;
-                    $input.trigger('stop.bs.touchspin', [stopValue]);
-                }, stopEventDelay);
+                const vars = getVars(input);
+                if (!vars.isStarted) {
+                    return;
+                }
+
+                input.prop('readonly', false);
+
+                // Stoppe alle laufenden Aktionen
+                clearAllTimers(input);
+
+                vars.stopDelay = setTimeout(function () {
+                    const settings = getSettings(input);
+                    const startValue = vars.startValue || 0;
+                    const stopValue = parseFloat(input.val()) || 0;
+                    const diff = parseFloat((stopValue - startValue).toFixed(settings.decimals));
+                    vars.startValue = null;
+                    input.trigger('stop.bs.touchspin', [stopValue, diff]);
+
+                    if (typeof settings.onStop === 'function') {
+                        settings.onStop(stopValue, diff); // Custom Callback ausführen
+                    }
+                    vars.isStarted = false; // Status zurücksetzen
+                    setVars(input, vars);
+                }, $.bsTouchspin.config.delay);
+
+                setVars(input, vars);
             });
 
-        // Neue Events für Eingaben und Validierung
+        $input.on('focusin', function (e) {
+            const input = $(e.currentTarget);
+            const settings = getSettings($input);
+            clearAllTimers(input);
+            const vars = getVars(input);
+            if (!vars.isStarted) {
+                // Trigger 'start.bs.touchspin' only on first start
+                const startValue = parseFloat(input.val()) || 0;
+                input.trigger('start.bs.touchspin', [startValue]);
+                vars.startValue = startValue;
+                vars.isStarted = true;
+
+                if (typeof settings.onStart === 'function') {
+                    settings.onStart(startValue); // Execute custom callback
+                }
+                setVars(input, vars);
+            }
+        })
+
+        let inputProcessed = false; // Status definieren
+
         $input
-            .on('input', function (e) {
-                btnCheck.show();
-                updateButtonStates(); // Aktualisiere die Buttons bei manueller Eingabe
+            .on('keydown', function (e) {
+                if (e.key === "Enter") { // Prüfen, ob die Enter-Taste gedrückt wurde
+                    e.preventDefault(); // Standardaktionen stoppen
+                    e.stopPropagation(); // Event propagation stoppen
+
+                    const input = $(e.currentTarget);
+                    if (!inputProcessed) {
+                        handleInput(input); // Funktion nur aufrufen, wenn noch nicht verarbeitet
+                        inputProcessed = true;
+                    }
+                }
+            })
+            .on('blur', function (e) {
+                e.stopPropagation(); // Event propagation stoppen
+
+                const input = $(e.currentTarget);
+                if (!inputProcessed) {
+                    handleInput(input); // Funktion nur aufrufen, wenn Enter nicht vorher aufgerufen wurde
+                    inputProcessed = true;
+                }
+            })
+            .on('focus', function () {
+                // Bei Fokus zurücksetzen (neue Eingabe erlaubt)
+                inputProcessed = false;
+            })
+            .on('keyup', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const input = $(e.currentTarget);
+                const vars = getVars(input);
+                if (vars.stepUnknown) {
+                    let settings = getSettings($input);
+                    const data = calculateStepByUnknown(input);
+                    settings.decimals = data.decimals;
+                    settings.step = data.step;
+                    setSettings(input, settings);
+                }
             });
 
-        // Initialer Zustand der Buttons festlegen
-        updateButtonStates();
+        // Initialer Zustand der Buttons
+        updateButtonStates($input);
+    }
+
+    function handleInput($currentInput) {
+        clearAllTimers($currentInput);
+        const vars = getVars($currentInput);
+
+        validateValue($currentInput, true);
+        toggleFormatted($currentInput, true);
+        vars.isStarted = false;
+        setVars($currentInput, vars);
+    }
+
+    function clearAllTimers($input) {
+        const vars = getVars($input); // Hole die individuellen Timer des Inputs
+        if (vars.timeout) {
+            clearTimeout(vars.timeout);    // Stop Timeout
+            vars.timeout = null;
+        }
+        if (vars.interval) {
+            clearTimeout(vars.interval);   // Stop Intervall
+            vars.interval = null;
+        }
+        if (vars.stopDelay) {
+            clearTimeout(vars.stopDelay);  // Verzögertes Stop-Event anhalten
+            vars.stopDelay = null;
+        }
+        setVars($input, vars); // Aktuelle Stati zurücksetzen
+    }
+
+    function toggleFormatted($input, show) {
+        const wrapper = getWrapper($input);
+        const settings = getSettings($input);
+        const formatted = wrapper.find('.' + wrapperClassFormatted);
+        if (typeof settings.formatter === 'function') {
+            formatted.html('<div>' + settings.formatter($input.val(), settings.decimals) + '</div>');
+        }
+        if (formatted.length) {
+            if (show) {
+                formatted.addClass('d-flex');
+                formatted.show();
+                $input.attr('type', 'hidden');
+            } else {
+                formatted.removeClass('d-flex');
+                formatted.hide();
+                $input.attr('type', 'text');
+                $input.focus();
+                $input[0].select();
+                $input.trigger('focusin');
+            }
+        }
     }
 
     function buildTouchspin($input) {
@@ -259,29 +480,62 @@
             $input.appendTo($inputGroup);
         }
         $inputGroup.addClass(wrapperClass);
-        $input.addClass('form-control text-center').attr('type', 'text');
+        $inputGroup.addClass('flex-nowrap');
+        if ($.inArray(settings.size, ['sm', 'lg']) >= 0) {
+            $inputGroup.addClass('input-group-' + settings.size);
+        }
+        $input
+            .addClass('form-control text-center flex-grow-0')
+            .css({width: '150px'})
+            .attr('type', 'text');
+
+        if (typeof settings.formatter === 'function') {
+            $('<div>', {
+                class: 'input-group-text d-flex justify-content-center ' + wrapperClassFormatted,
+            }).insertAfter($input).css({width: '150px'})
+            toggleFormatted($input, true);
+        }
+
+        if (!settings.allowInput) {
+            $input.prop('disabled', true);
+        }
+        if (settings.prefix) {
+            $('<span>', {
+                class: 'input-group-text',
+                html: settings.prefix,
+            }).prependTo($inputGroup);
+        }
         $('<button>', {
+            type: 'button',
             'data-touchspin-down': '',
-            class: 'btn btn-secondary',
-            html: '<i class="bi bi-dash-lg"></i>',
+            class: settings.buttons.down.class,
+            html: `<i class="${settings.buttons.down.icon}"></i>`,
         }).prependTo($inputGroup);
 
-        $('<button>', {
-            'data-touchspin-man': '',
-            css: {
-                display: 'none'
-            },
-            class: 'btn btn-success',
-            html: '<i class="bi bi-check-lg"></i>',
-        }).appendTo($inputGroup);
+        if (settings.postfix) {
+            $('<span>', {
+                class: 'input-group-text',
+                html: settings.postfix,
+            }).appendTo($inputGroup);
+        }
 
         $('<button>', {
+            type: 'button',
             'data-touchspin-up': '',
-            class: 'btn btn-secondary',
-            html: '<i class="bi bi-plus-lg"></i>',
+            class: settings.buttons.up.class,
+            html: `<i class="${settings.buttons.up.icon}"></i>`,
         }).appendTo($inputGroup);
-
     }
+
+    function calculateStepByUnknown($input) {
+        const currentValue = $input.val().replace(',', '.') || 0;
+        const decimals = getDecimalPlaces(currentValue);
+        return {
+            step: Math.pow(10, -decimals),
+            decimals: decimals
+        }
+    }
+
 
     $.fn.bsTouchspin = function (options) {
         if ($(this).length > 1) {
@@ -293,12 +547,39 @@
         const $input = $(this);
 
         if (!$input.data('touchspin')) {
-            const settings = $.extend(true, {}, $.bsTouchspin.defaults, $input.data() || {}, options || {});
-            settings.decimals = getDecimalPlaces(settings.step);
-            $input.val(parseFloat($input.val()).toFixed(settings.decimals));
-            $input.data('touchspin', settings);
-            buildTouchspin($input);
-            events($input);
+            try {
+                const settings = $.extend(true, {}, $.bsTouchspin.defaults, $input.data() || {}, options || {});
+
+                if (!settings.step) {
+                    settings.step = 'any';
+                }
+
+                let stepUnknown = false;
+
+                if (settings.step === 'any') {
+                    stepUnknown = true;
+                    const data = calculateStepByUnknown($input); // Fehler könnten hier auftreten
+                    settings.decimals = data.decimals;
+                    settings.step = data.step;
+                } else {
+                    settings.decimals = getDecimalPlaces(settings.step); // Fehler könnten hier auftreten
+                }
+
+                const vars = getVars($input); // Fehler bei der Variablenabfrage möglich
+                vars.stepUnknown = stepUnknown;
+                setVars($input, vars); // Speicherprobleme möglich
+                setSettings($input, settings); // Fehlerhafte Konfigurationsobjekte könnten hier scheitern
+                buildTouchspin($input); // Initialisierungsfehler auf Touchspin könnten auftreten
+                events($input); // Event-Bindungsprobleme
+                const startValue = validateValue($input, false); // Validierungsfehler möglich
+                $input.trigger('start.bs.touchspin', [startValue]); // Eventtrigger-Fehler
+            } catch (error) {
+                console.error("Ein Fehler ist während der Touchspin-Initialisierung aufgetreten:", error);
+
+                // Falls es sinnvoll ist, können hier alternative Aktionen folgen, wie z. B. eine Meldung oder
+                // das Setzen eines Fallback-Wertes:
+                $input.trigger('error.bs.touchspin', [error]);
+            }
         }
 
         return $input;
