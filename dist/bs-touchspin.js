@@ -1,7 +1,7 @@
 /**
  * Bootstrap TouchSpin - Custom input spinner component for Bootstrap
  *
- * @version 1.0.3
+ * @version 1.0.3.1
  * @releaseDate 2025-06-19
  * @author Thomas Kirsch <t.kirsch@webcito.de>
  * @license MIT
@@ -675,7 +675,7 @@
 
             if (['string', 'function'].includes(typeof settings?.formatter)) {
                 $('<div>', {
-                    class: 'input-group-text d-flex justify-content-center user-select-none ' + wrapperClassFormatted,
+                    class: 'input-group-text px-2 d-flex justify-content-center user-select-none ' + wrapperClassFormatted,
                 }).insertAfter($input).css({width: '150px'})
                 toggleFormatted($input, true);
             }
@@ -686,26 +686,33 @@
 
             if (settings.prefix) {
                 $('<span>', {
-                    class: 'input-group-text',
+                    class: 'input-group-text px-2',
                     html: settings.prefix,
                 }).prependTo($inputGroup);
             }
+            const btnMinWidth = settings.size === 'lg' ? 40 : 22;
             $('<button>', {
                 type: 'button',
                 'data-touchspin-down': '',
+                css: {
+                    minWidth: btnMinWidth + 'px',
+                },
                 class: 'btn ' + settings.buttons.down.class,
                 html: `<i class="${settings.buttons.down.icon}"></i>`,
             }).prependTo($inputGroup);
 
             if (settings.postfix) {
                 $('<span>', {
-                    class: 'input-group-text',
+                    class: 'input-group-text px-2',
                     html: settings.postfix,
                 }).appendTo($inputGroup);
             }
 
             $('<button>', {
                 type: 'button',
+                css: {
+                    minWidth: btnMinWidth + 'px',
+                },
                 'data-touchspin-up': '',
                 class: 'btn ' + settings.buttons.up.class,
                 html: `<i class="${settings.buttons.up.icon}"></i>`,
