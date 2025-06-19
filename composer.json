@@ -1,6 +1,6 @@
 {
   "name": "webcito/bs-touchspin",
-  "version": "1.0.3.1",
+  "version": "1.0.3.2",
   "description": "A jQuery touchspin input plugin requiring Bootstrap 5.",
   "keywords": [
     "jquery",

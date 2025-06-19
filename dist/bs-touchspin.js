@@ -1,7 +1,7 @@
 /**
  * Bootstrap TouchSpin - Custom input spinner component for Bootstrap
  *
- * @version 1.0.3.1
+ * @version 1.0.3.2
  * @releaseDate 2025-06-19
  * @author Thomas Kirsch <t.kirsch@webcito.de>
  * @license MIT
@@ -690,7 +690,7 @@
                     html: settings.prefix,
                 }).prependTo($inputGroup);
             }
-            const btnMinWidth = settings.size === 'lg' ? 40 : 22;
+            const btnMinWidth = settings.size === 'lg' ? 40 : 32;
             $('<button>', {
                 type: 'button',
                 'data-touchspin-down': '',
