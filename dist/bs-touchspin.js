@@ -1,7 +1,7 @@
 /**
  * Bootstrap TouchSpin - Custom input spinner component for Bootstrap
  *
- * @version 1.0.1
+ * @version 1.0.3
  * @releaseDate 2025-06-19
  * @author Thomas Kirsch <t.kirsch@webcito.de>
  * @license MIT
@@ -195,14 +195,6 @@
             const btnDown = wrapper.find('[data-touchspin-down]');
             const btnUp = wrapper.find('[data-touchspin-up]');
             const step = settings.step; // Schrittweite
-
-            if (step === "any") {
-                // Bei "any" keine Deaktivierung der Buttons vornehmen
-                btnDown.prop('disabled', false);
-                btnUp.prop('disabled', false);
-                return;
-            }
-
             const value = parseFloat($input.val()) || 0;
             const decimals = settings.decimals || 0;
 
@@ -474,17 +466,14 @@
                 .on('mouseup mouseleave touchend', '[data-touchspin-down], [data-touchspin-up]', function (e) {
                     e.preventDefault();
                     const btn = $(e.currentTarget);
-                    if (btn.prop('disabled')) {
-                        return;
-                    }
                     const input = btn.closest('.' + wrapperClass).find('input');
 
                     const vars = getVars(input);
+                    input.prop('readonly', false);
+
                     if (!vars.isStarted) {
                         return;
                     }
-
-                    input.prop('readonly', false);
 
                     // Stoppe alle laufenden Aktionen
                     clearAllTimers(input);

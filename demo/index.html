@@ -54,6 +54,11 @@ $('#input_3').bsTouchspin({
     size: 'lg'
 });</code></pre>
             </div>
+
+            <div class="mb-3">
+                <label for="input_4" class="form-label d-none"></label>
+                <input type="number" step="1" min="0" max="100" value="3.12" id="input_4">
+            </div>
         </form>
         <pre id="pre_events" class="font-monospace text-light flex-fill" style="background: black"></pre>
     </div>
@@ -98,6 +103,9 @@ $('#input_3').bsTouchspin({
         });
 
         $('#input_3').bsTouchspin({
+            size: 'lg',
+        });
+        $('#input_4').bsTouchspin({
             size: 'lg',
         });
 
