@@ -42,6 +42,7 @@
                 step: "any",
                 min: null,
                 max: null,
+                decimals: null,
                 prefix: null,
                 postfix: null,
                 allowInput: true,
@@ -81,13 +82,13 @@
                  * @param {number|string} num - The input value to evaluate, which can be a number or a string representation of a number.
                  * @return {number} The number of decimal places in the input, or 0 if there are no decimal places or the input is invalid.
                  */
-                getDecimalPlaces(num) {
-                    if (typeof num === "string" && num.includes(".")) {
-                        return num.split(".")[1].length; // Zähle die Nachkommastellen im String
-                    } else if (!isNaN(num) && num.toString().includes(".")) {
-                        return num.toString().split(".")[1].length; // Zähle Nachkommastellen bei Zahl
+                getDecimalBySteps(num) {
+                    if (isNaN(num)) {
+                        return 0; // Gibt 0 zurück, wenn der Wert keine gültige Zahl ist
                     }
-                    return 0; // Keine Dezimalstellen
+
+                    const decimalPart = num.toString().split(".")[1]; // Prüfe auf Dezimalstellen
+                    return decimalPart ? decimalPart.length : 0; // Gib die Anzahl der Nachkommastellen zurück
                 },
                 /**
                  * Formats a given number to a specified number of decimal places and locale.
@@ -325,17 +326,11 @@
                 return Math.round(num * factor) / factor;
             };
 
-            if (settings.step === "any") {
-                // Dynamische Schrittweite basierend auf vorhandenen Dezimalstellen
-                const decimals = $.bsTouchspin.utils.getDecimalPlaces(value);
-                value += vars.direction * Math.pow(10, -decimals); // Passe den Wert dynamisch an
-                value = roundToDecimals(value, decimals).toFixed(decimals); // Runde und erhalte die Null(en)
-            } else {
-                // Normale Schrittweite verwenden
-                const decimals = settings.decimals || 0;
-                value = (value + vars.direction * settings.step);
-                value = roundToDecimals(value, decimals).toFixed(decimals); // Runde und erhalte die Null(en)
-            }
+            // Normale Schrittweite verwenden
+            const decimals = settings.decimals || 0;
+            value = (value + vars.direction * settings.step);
+            value = roundToDecimals(value, decimals).toFixed(decimals); // Runde und erhalte die Null(en)
+
 
             // Prüfung auf Mindest- und Höchstgrenze
             if (settings.min !== null && parseFloat(value) < settings.min) {
@@ -742,7 +737,7 @@
          */
         function calculateStepByUnknown($input) {
             const currentValue = $input.val().replace(',', '.') || 0;
-            const decimals = $.bsTouchspin.utils.getDecimalPlaces(currentValue);
+            const decimals = $.bsTouchspin.utils.getDecimalBySteps(currentValue);
             return {
                 step: Math.pow(10, -decimals),
                 decimals: decimals
@@ -810,7 +805,7 @@
                     settings.decimals = data.decimals;
                     settings.step = data.step;
                 } else {
-                    settings.decimals = $.bsTouchspin.utils.getDecimalPlaces(settings.step);
+                    settings.decimals = $.bsTouchspin.utils.getDecimalBySteps(settings.step);
                 }
 
                 // If max is also not found, set the highest possible number
@@ -820,7 +815,8 @@
 
                 // The same at min
                 if (settings.min === null) {
-                    settings.min = $.bsTouchspin.config.maximumMin;;
+                    settings.min = $.bsTouchspin.config.maximumMin;
+                    ;
                 }
 
                 if (typeof settings.formatter === 'string') {
