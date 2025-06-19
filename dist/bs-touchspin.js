@@ -1,6 +1,29 @@
+/**
+ * Bootstrap TouchSpin - Custom input spinner component for Bootstrap
+ *
+ * @version 1.0.1
+ * @releaseDate 2025-06-19
+ * @author Thomas Kirsch <t.kirsch@webcito.de>
+ * @license MIT
+ *
+ * A highly customizable jQuery plugin that creates a Bootstrap-styled spinner input
+ * with increment/decrement buttons. Features include:
+ * - Configurable step sizes and value ranges
+ * - Custom formatting options (number, currency, percentage)
+ * - Responsive button controls with customizable icons
+ * - Support for keyboard input and button press-and-hold
+ * - Event callbacks for value changes
+ * - Localization support for number formatting
+ * - Compatible with Bootstrap 5.x themes
+ * - Extensible through custom formatters and callbacks
+ */
 (function ($) {
         "use strict";
 
+        /**
+         * Main plugin namespace containing configuration, utility methods and defaults
+         * @namespace
+         */
         $.bsTouchspin = {
             setDefaults: function (options) {
                 this.defaults = $.extend(true, {}, this.defaults, options || {});
@@ -47,6 +70,8 @@
                 startSpeed: 600,
                 delay: 1000,
                 locale: 'en-US',
+                maximumMax: (2 ** 31) - 1, // 2,147,483,647
+                maximumMin: -(2 ** 31) // -2,147,483,648
             },
             utils: {
                 /**
@@ -64,23 +89,43 @@
                     }
                     return 0; // Keine Dezimalstellen
                 },
+                /**
+                 * Formats a given number to a specified number of decimal places and locale.
+                 *
+                 * @param {number} number - The number to be formatted.
+                 * @param {number} [decimalPlaces=2] - The number of decimal places to format the number to. Defaults to 2.
+                 * @param {string} [locale='en-US'] - The locale to be used for formatting. Defaults to 'en-US'.
+                 * @return {string} The formatted number as a string.
+                 */
                 formatNumber(number, decimalPlaces = 2, locale = 'en-US') {
                     return new Intl.NumberFormat(locale, {
                         minimumFractionDigits: decimalPlaces,
                         maximumFractionDigits: decimalPlaces
                     }).format(number);
                 },
+                /**
+                 * Formats a given number as a percentage string based on the specified locale and decimal precision.
+                 *
+                 * @param {number} value - The numerical value to be formatted as a percentage.
+                 * @param {number} [decimals=2] - The number of decimal places in the formatted percentage.
+                 * @param {string} [locale='en-US'] - The locale to use for formatting the percentage.
+                 * @return {string} The formatted percentage string.
+                 */
                 formatPercent(value, decimals = 2, locale = 'en-US') {
-                    if (value > 1) {
-                        value = value / 100;
-                    }
-
                     return new Intl.NumberFormat(locale, {
                         style: 'percent',
                         minimumFractionDigits: decimals,
                         maximumFractionDigits: decimals
                     }).format(value);
                 },
+                /**
+                 * Formats a given number as a currency string.
+                 *
+                 * @param {number} value - The numeric value to format as currency.
+                 * @param {number} [decimals=2] - The number of decimal places to include in the formatted output.
+                 * @param {string} [locale='en-US'] - The locale identifier used to format the currency string.
+                 * @return {string} The formatted currency string.
+                 */
                 formatCurrency(value, decimals = 2, locale = 'en-US') {
                     return new Intl.NumberFormat(locale, {
                         style: 'currency',
@@ -583,7 +628,7 @@
         function toggleFormatted($input, show) {
             const wrapper = getWrapper($input);
             const settings = getSettings($input);
-            const formatted = wrapper.find('.' + wrapperClassFormatted);
+            const $formattedWrapper = wrapper.find('.' + wrapperClassFormatted);
             if (typeof settings.formatter === 'string') {
                 let format;
                 switch (settings.formatter) {
@@ -599,16 +644,18 @@
                         format = $.bsTouchspin.utils.formatNumber($input.val(), settings.decimals, $.bsTouchspin.config.locale);
                     }
                 }
-                formatted.html('<div>' + format + '</div>');
+                $formattedWrapper.html('<div>' + format + '</div>');
+            } else if (typeof settings.formatter === 'function') {
+                settings.formatter($input.val(), settings.decimals, $.bsTouchspin.config.locale)
             }
-            if (formatted.length) {
+            if ($formattedWrapper.length) {
                 if (show) {
-                    formatted.addClass('d-flex');
-                    formatted.show();
+                    $formattedWrapper.addClass('d-flex');
+                    $formattedWrapper.show();
                     $input.attr('type', 'hidden');
                 } else {
-                    formatted.removeClass('d-flex');
-                    formatted.hide();
+                    $formattedWrapper.removeClass('d-flex');
+                    $formattedWrapper.hide();
                     $input.attr('type', 'text');
                     $input.focus();
                     $input[0].select();
@@ -642,7 +689,7 @@
                 .css({width: '150px'})
                 .attr('type', 'text');
 
-            if (typeof settings.formatter === 'string') {
+            if (['string', 'function'].includes(typeof settings?.formatter)) {
                 $('<div>', {
                     class: 'input-group-text d-flex justify-content-center user-select-none ' + wrapperClassFormatted,
                 }).insertAfter($input).css({width: '150px'})
@@ -652,6 +699,7 @@
             if (!settings.allowInput) {
                 $input.prop('disabled', true);
             }
+
             if (settings.prefix) {
                 $('<span>', {
                     class: 'input-group-text',
@@ -728,23 +776,51 @@
             const $input = $(this);
 
             if (!$input.data('touchspin')) {
+                // Have we received an object?
                 const optionsGiven = typeof methodOrOption === 'object';
                 const options = optionsGiven ? methodOrOption : {};
-                const settings = $.extend(true, {}, $.bsTouchspin.defaults, options, $input.data() || {});
-
+                // If we have an input of type number and can determine step min and max from it, these values are preferred.
+                const inputNumber = {};
+                if ($input.attr('step')) {
+                    inputNumber.step = parseFloat($input.attr('step'));
+                }
+                if ($input.attr('min')) {
+                    inputNumber.min = parseFloat($input.attr('min'));
+                }
+                if ($input.attr('max')) {
+                    inputNumber.max = parseFloat($input.attr('max'));
+                }
+                // Assemble the setup
+                // 1. From the standards
+                // 2. From the transferred object
+                // 3. The data attributes of the input
+                // 4. the classic input attributes
+                const settings = $.extend(true, {}, $.bsTouchspin.defaults, options, $input.data() || {}, inputNumber);
+                // If no step was found, set it to any for now
                 if (!settings.step) {
                     settings.step = 'any';
                 }
 
                 let stepUnknown = false;
 
+                // Determine how many decimal places the number has
                 if (settings.step === 'any') {
                     stepUnknown = true;
-                    const data = calculateStepByUnknown($input); // Fehler könnten hier auftreten
+                    const data = calculateStepByUnknown($input);
                     settings.decimals = data.decimals;
                     settings.step = data.step;
                 } else {
-                    settings.decimals = $.bsTouchspin.utils.getDecimalPlaces(settings.step); // Fehler könnten hier auftreten
+                    settings.decimals = $.bsTouchspin.utils.getDecimalPlaces(settings.step);
+                }
+
+                // If max is also not found, set the highest possible number
+                if (settings.max === null) {
+                    settings.max = $.bsTouchspin.config.maximumMax;
+                }
+
+                // The same at min
+                if (settings.min === null) {
+                    settings.min = $.bsTouchspin.config.maximumMin;;
                 }
 
                 if (typeof settings.formatter === 'string') {

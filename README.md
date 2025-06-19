@@ -71,12 +71,14 @@ The plugin supports a wide range of customization options, as listed below:
 
 The following **global configuration** options allow fine-tuning of touchspin behavior:
 
-| Option       | Description                                                                                  | Default   |
-|--------------|----------------------------------------------------------------------------------------------|-----------|
-| `minSpeed`   | The minimum speed (in ms) for holding the increment or decrement button.                     | `1`       |
-| `startSpeed` | The initial speed (in ms) when holding the increment or decrement button.                    | `600`     |
-| `delay`      | Delay (in ms) before triggering the stop callback after releasing a button or leaving focus. | `1000`    |
-| `locale`     | Defines the locale used for number formatting (e.g., `'en-US'`, `'de-DE'`, etc.).            | `'en-US'` |
+| Option       | Description                                                                                  | Data Type      | Default          |
+|--------------|----------------------------------------------------------------------------------------------|----------------|------------------|
+| `minSpeed`   | The minimum speed (in ms) for holding the increment or decrement button.                     | `number`       | `1`              |
+| `startSpeed` | The initial speed (in ms) when holding the increment or decrement button.                    | `number`       | `600`            |
+| `delay`      | Delay (in ms) before triggering the stop callback after releasing a button or leaving focus. | `number`       | `1000`           |
+| `locale`     | Defines the locale used for number formatting (e.g., `'en-US'`, `'de-DE'`, etc.).            | `string`       | `'en-US'`        |
+| `maximumMax` | The value that is taken for max if max has not been defined.                                 | `number\|null` | `2.147.483.647`  |
+| `maximumMin` | The value that is taken for min if min is not defined.                                       | `number\|null` | `-2.147.483.648` |
 
 ---
 
@@ -123,27 +125,64 @@ $('#spinner').bsTouchspin({
 
 Below is the full list of default options for the `bsTouchspin` plugin:
 
-| Option                     | Description                                                                                        | Default                                      |
-|----------------------------|----------------------------------------------------------------------------------------------------|----------------------------------------------|
-| `size`                     | Sets the size of the input. Acceptable values: `null`, `sm`, or `lg`.                              | `null`                                       |
-| `step`                     | Defines the step size for increments or decrements. Set to `"any"` for dynamic step size.          | `"any"`                                      |
-| `min`                      | The minimum value allowed for the input.                                                           | `null`                                       |
-| `max`                      | The maximum value allowed for the input.                                                           | `null`                                       |
-| `prefix`                   | Prefix text or symbol shown before the input value.                                                | `null`                                       |
-| `postfix`                  | Postfix text or symbol shown after the input value.                                                | `null`                                       |
-| `allowInput`               | Allows manual input of a value in the input field.                                                 | `true`                                       |
-| `buttons.up.class`         | CSS classes for the increment ("up") button.                                                       | `'btn-secondary rounded-end-pill fw-bold'`   |
-| `buttons.up.icon`          | Icon for the increment ("up") button (uses Bootstrap Icons).                                       | `'bi bi-plus-lg'`                            |
-| `buttons.up.iconSetZero`   | Icon for the increment button when the value reaches zero.                                         | `'bi bi-trash'`                              |
-| `buttons.down.class`       | CSS classes for the decrement ("down") button.                                                     | `'btn-secondary rounded-start-pill fw-bold'` |
-| `buttons.down.icon`        | Icon for the decrement ("down") button (uses Bootstrap Icons).                                     | `'bi bi-dash-lg'`                            |
-| `buttons.down.iconSetZero` | Icon for the decrement button when the value reaches zero.                                         | `'bi bi-trash'`                              |
-| `formatter`                | Formatting style for the input value. Acceptable values: `'number'`, `'currency'`, or `'percent'`. | `'number'`                                   |
-| `onInit`                   | Callback function, executed during initialization.                                                 | `function (value) {}`                        |
-| `onStart`                  | Callback function, executed when incrementing or decrementing starts.                              | `function (value) {}`                        |
-| `onStop`                   | Callback function, executed when incrementing or decrementing stops.                               | `function (value, diff) {}`                  |
+| Option                     | Description                                                                                                                                                                                                                     | Data Type              | Default                                      |
+|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|----------------------------------------------|
+| `size`                     | Sets the size of the input. Acceptable values: `null`, `sm`, or `lg`.                                                                                                                                                           | `string` or `null`     | `null`                                       |
+| `step`                     | Defines the step size for increments or decrements. Set to `"any"` for dynamic step size.                                                                                                                                       | `number` or `string`   | `"any"`                                      |
+| `min`                      | The minimum value allowed for the input.                                                                                                                                                                                        | `number` or `null`     | `null`                                       |
+| `max`                      | The maximum value allowed for the input.                                                                                                                                                                                        | `number` or `null`     | `null`                                       |
+| `prefix`                   | Prefix text or symbol shown before the input value.                                                                                                                                                                             | `string` or `null`     | `null`                                       |
+| `postfix`                  | Postfix text or symbol shown after the input value.                                                                                                                                                                             | `string` or `null`     | `null`                                       |
+| `allowInput`               | Allows manual input of a value in the input field.                                                                                                                                                                              | `boolean`              | `true`                                       |
+| `buttons.up.class`         | CSS classes for the increment ("up") button.                                                                                                                                                                                    | `string`               | `'btn-secondary rounded-end-pill fw-bold'`   |
+| `buttons.up.icon`          | Icon for the increment ("up") button (uses Bootstrap Icons).                                                                                                                                                                    | `string`               | `'bi bi-plus-lg'`                            |
+| `buttons.up.iconSetZero`   | Icon for the increment button when the value reaches zero.                                                                                                                                                                      | `string`               | `'bi bi-trash'`                              |
+| `buttons.down.class`       | CSS classes for the decrement ("down") button.                                                                                                                                                                                  | `string`               | `'btn-secondary rounded-start-pill fw-bold'` |
+| `buttons.down.icon`        | Icon for the decrement ("down") button (uses Bootstrap Icons).                                                                                                                                                                  | `string`               | `'bi bi-dash-lg'`                            |
+| `buttons.down.iconSetZero` | Icon for the decrement button when the value reaches zero.                                                                                                                                                                      | `string`               | `'bi bi-trash'`                              |
+| `formatter`                | Formatting style for the input value. Acceptable values: `'number'`, `'currency'`, or `'percent'`. You can also specify your own formatting function. The parameters `value`, `decimals` and `locale` are passed into the case. | `string` or `function` | `'number'`                                   |
+| `onInit`                   | Callback function, executed during initialization.                                                                                                                                                                              | `function`             | `function (value) {}`                        |
+| `onStart`                  | Callback function, executed when incrementing or decrementing starts.                                                                                                                                                           | `function`             | `function (value) {}`                        |
+| `onStop`                   | Callback function, executed when incrementing or decrementing stops.                                                                                                                                                            | `function`             | `function (value, diff) {}`                  |
 
 ---
+
+## Methods
+
+### `val`
+
+The **`val`** method allows you to set the spinner's value programmatically.
+
+#### **Usage:**
+
+```javascript
+$('#example-spinner').bsTouchspin('val', value);
+```
+
+- **`value`**: The numeric value you want to set for the spinner.
+
+#### **Examples:**
+
+1. **Set the value of the spinner:**
+
+```javascript
+$('#example-spinner').bsTouchspin('val', 42); // Sets the spinner's value to 42.
+```
+
+#### **Notes:**
+
+- **Validation:** The provided value is validated against the configured `min`, `max`, and `step` properties. If the value exceeds the defined limits, it will be automatically adjusted:
+```javascript
+$('#example-spinner').bsTouchspin({
+    min: 0,
+    max: 100
+});
+
+$('#example-spinner').bsTouchspin('val', 150); // The value will be set to 100 since it exceeds the `max`.
+```
+
+- The applied value respects any configured formatting via options like `formatter` (e.g., currency or percentage).
+
 
 ## Events
 
