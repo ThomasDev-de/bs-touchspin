@@ -4,6 +4,7 @@
 for numeric inputs. It allows for smooth increment and decrement of numeric values through up and down buttons, while
 supporting custom configurations for appearance and behavior.
 
+![img.png](demo/img.png)
 ---
 
 ## Features
@@ -71,14 +72,15 @@ The plugin supports a wide range of customization options, as listed below:
 
 The following **global configuration** options allow fine-tuning of touchspin behavior:
 
-| Option       | Description                                                                                  | Data Type      | Default          |
-|--------------|----------------------------------------------------------------------------------------------|----------------|------------------|
-| `minSpeed`   | The minimum speed (in ms) for holding the increment or decrement button.                     | `number`       | `1`              |
-| `startSpeed` | The initial speed (in ms) when holding the increment or decrement button.                    | `number`       | `600`            |
-| `delay`      | Delay (in ms) before triggering the stop callback after releasing a button or leaving focus. | `number`       | `1000`           |
-| `locale`     | Defines the locale used for number formatting (e.g., `'en-US'`, `'de-DE'`, etc.).            | `string`       | `'en-US'`        |
-| `maximumMax` | The value that is taken for max if max has not been defined.                                 | `number\|null` | `2.147.483.647`  |
-| `maximumMin` | The value that is taken for min if min is not defined.                                       | `number\|null` | `-2.147.483.648` |
+| Option          | Description                                                                                      | Data Type      | Default          |
+|-----------------|--------------------------------------------------------------------------------------------------|----------------|------------------|
+| `minSpeed`      | The minimum speed (in ms) for holding the increment or decrement button.                         | `number`       | `1`              |
+| `startSpeed`    | The initial speed (in ms) when holding the increment or decrement button.                        | `number`       | `600`            |
+| `delay`         | Delay (in ms) before triggering the stop callback after releasing a button or leaving focus.     | `number`       | `1000`           |
+| `locale`        | Defines the locale used for number formatting (e.g., `'en-US'`, `'de-DE'`, etc.).                | `string`       | `'en-US'`        |
+| `maximumMax`    | The value that is taken for max if max has not been defined.                                     | `number\|null` | `2.147.483.647`  |
+| `maximumMin`    | The value that is taken for min if min is not defined.                                           | `number\|null` | `-2.147.483.648` |
+| `inputMinWidth` | A minimum width for the input field and formatting output. It can have all CSS values for width. | `number`       | `75`             |
 
 ---
 
@@ -118,6 +120,10 @@ $('#spinner').bsTouchspin({
     }
 });
 ```
+
+### Note:
+If configurable values such as **`min`**, **`max`**, **`step`**, or other numeric settings are already defined as **HTML attributes** on the `<input>` element (e.g., `min="10"`, `max="50"`), the HTML attributes will typically **take precedence over JavaScript configurations** unless explicitly overridden by the JavaScript options provided during initialization.
+
 
 ---
 
@@ -171,7 +177,9 @@ $('#example-spinner').bsTouchspin('val', 42); // Sets the spinner's value to 42.
 
 #### **Notes:**
 
-- **Validation:** The provided value is validated against the configured `min`, `max`, and `step` properties. If the value exceeds the defined limits, it will be automatically adjusted:
+- **Validation:** The provided value is validated against the configured `min`, `max`, and `step` properties. If the
+  value exceeds the defined limits, it will be automatically adjusted:
+
 ```javascript
 $('#example-spinner').bsTouchspin({
     min: 0,
@@ -182,7 +190,6 @@ $('#example-spinner').bsTouchspin('val', 150); // The value will be set to 100 s
 ```
 
 - The applied value respects any configured formatting via options like `formatter` (e.g., currency or percentage).
-
 
 ## Events
 

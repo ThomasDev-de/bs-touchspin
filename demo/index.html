@@ -1,66 +1,65 @@
 <!doctype html>
-<html lang="de" data-bs-theme="dark">
+<html lang="de" data-bs-theme="light">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Bootstrap demo</title>
     <link href="../vendor/twbs/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="../vendor/twbs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!--    <link href="../vendor/twbs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">-->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css" rel="stylesheet">
 
-<!--        <link href=" https://cdn.jsdelivr.net/npm/bootswatch@5.3.6/dist/materia/bootstrap.min.css " rel="stylesheet">-->
+    <link href=" https://cdn.jsdelivr.net/npm/bootswatch@5.3.6/dist/quartz/bootstrap.min.css " rel="stylesheet">
 </head>
 <body>
 <div class="container py-5">
     <h1>$.fn.bsTouchspin</h1>
     <hr>
-    <div class="d-flex flex-wrap gap-5 p-5">
-        <form>
-            <div class="card card-body">
-                <div class="mb-3">
-                    <label for="input_1" class="form-label d-none"></label>
-                    <input type="number" step="0.01" min="0" max="1" value="0" id="input_1">
+    <div class="d-flex flex-column gap-3 p-3">
+        <form class="d-flex flex-wrap flex-xl-nowrap gap-3">
+            <div class="card w-100">
+                <div class="card-header">
+                    default size
                 </div>
-                <pre><code class="javascript">
-$('#input_1').bsTouchspin({
-    min: 0,
-    max: 1,
-    step: 0.01,
-    allowInput: false,
-    formatter: 'percent'
-});</code></pre>
-            </div>
-            <div class="card card-body">
-                <div class="mb-3">
-                    <label for="input_2" class="form-label d-none">min: -10000, max: 10000, step: .01</label>
-                    <input type="number" data-step=".01" data-min="-10000" data-max="10000" value="5" id="input_2">
+                <div class="card-body">
+                    <pre><code class="html">&lt;input id="input_1" type="number" data-formatter="percent" step="0.01" min="0" max="1" value="0" id="input_1" class="form-control"&gt;</code></pre>
+                    <pre><code class="javascript">$('#input_1').bsTouchspin();</code></pre>
                 </div>
-                <pre><code class="javascript">
-$('#input_2').bsTouchspin({
-    size: 'sm'
-    min: -10000,
-    max: 10000,
-    step: .01,
-    formatter: 'currency'
-});</code></pre>
-            </div>
-            <div class="card card-body">
-                <div class="mb-3">
-                    <label for="input_3" class="form-label d-none">min: null, max: null, step: null|any</label>
-                    <input type="number" id="input_3" data-allow-input="true">
+                <div class="card-footer d-flex justify-content-center align-items-center" style="height: 100px">
+                    <label for="input_1" class="form-label d-none">default</label>
+                    <input type="number" data-formatter="percent" step="0.01" min="0" max="1" value="0" id="input_1"
+                           class="form-control">
                 </div>
-                <pre><code class="javascript">
-$('#input_3').bsTouchspin({
-    size: 'lg'
-});</code></pre>
             </div>
-
-            <div class="mb-3">
-                <label for="input_4" class="form-label d-none"></label>
-                <input type="number" step="1" min="0" max="100" value="3.12" id="input_4">
+            <div class="card  w-100">
+                <div class="card-header">
+                    small size
+                </div>
+                <div class="card-body">
+                    <pre><code class="html">&lt;input id="input_2" type="number" data-formatter="currency" data-step=".01" data-size="sm" data-min="-10000" data-max="10000" value="5"&gt;</code></pre>
+                    <pre><code class="javascript">$('#input_2').bsTouchspin();</code></pre>
+                </div>
+                <div class="card-footer d-flex justify-content-center align-items-center" style="height: 100px">
+                    <label for="input_2" class="form-label d-none">sm</label>
+                    <input type="number" data-step=".01" data-size="sm" data-min="-10000" data-max="10000" value="5"
+                           id="input_2">
+                </div>
+            </div>
+            <div class="card w-100">
+                <div class="card-header">
+                    large size
+                </div>
+                <div class="card-body">
+                <pre><code
+                        class="html">&lt;input id="input_3" type="number" data-allow-input="false" data-size="lg"&gt;</code></pre>
+                    <pre><code class="javascript">$('#input_3').bsTouchspin();</code></pre>
+                </div>
+                <div class="card-footer d-flex justify-content-center align-items-center" style="height: 100px">
+                    <label for="input_3" class="form-label d-none">lg</label>
+                    <input type="number" id="input_3" data-size="lg" data-allow-input="false">
+                </div>
             </div>
         </form>
-        <pre id="pre_events" class="font-monospace text-light flex-fill" style="background: black"></pre>
+        <pre id="pre_events" class="font-monospace text-light flex-fill h-50 p-3" style="background: black"></pre>
     </div>
 
 
@@ -71,12 +70,14 @@ $('#input_3').bsTouchspin({
 <script src="../vendor/components/jquery/jquery.min.js"></script>
 <script src="../vendor/twbs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../dist/bs-touchspin.js"></script>
+<!--suppress JSUnresolvedReference -->
 <script>
     $(document).ready(function () {
         // Initialisiere Syntax-Hervorhebung
         hljs.highlightAll();
+
         $.bsTouchspin.setConfig({
-            locale: 'de-DE'
+            locale: 'de-DE',
         })
         $(document)
             .on('init.bs.touchspin', 'input', function (e, value) {
@@ -97,10 +98,19 @@ $('#input_3').bsTouchspin({
             formatter: 'percent'
         });
 
+        // setTimeout(() => {
+        //     $('#input_1').bsTouchspin('destroy');
+        // },4000)
+
         $('#input_2').bsTouchspin({
             size: 'sm',
             formatter: 'currency'
         });
+
+        // setTimeout(() => {
+        //     $('#input_2').bsTouchspin('setPrefix', 'hello');
+        //     $('#input_2').bsTouchspin('setPostfix', 'world');
+        // },3000)
 
         $('#input_3').bsTouchspin({
             size: 'lg',
@@ -110,14 +120,12 @@ $('#input_3').bsTouchspin({
         });
 
         function log(message, ...values) {
-            // Values in lesbare Form bringen (z.B. JSON für Objekte oder direkt als String für primitive Werte)
             const formattedValues = values
-                .map(value => (typeof value === 'object' ? JSON.stringify(value) : String(value))) // Konvertiere jedes Argument einzeln
-                .join(', '); // Durch Kommas getrennt zusammenfügen
+                .map(value => (typeof value === 'object' ? JSON.stringify(value) : String(value)))
+                .join(', ');
 
-            // Kombiniere die Nachricht mit den formatierten Werten
             $('<div>', {
-                html: `${message} ${formattedValues}`, // Message + Werte
+                html: `${message} ${formattedValues}`
             }).appendTo(debugWrapper);
         }
     })

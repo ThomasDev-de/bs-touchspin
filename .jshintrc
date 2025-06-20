@@ -9,6 +9,8 @@
   "asi": true,
   "globals": {
     "jQuery": true,
-    "bootstrap": true
+    "bootstrap": true,
+    "highlightAll": true,
+    "hljs": true
   }
 }

@@ -1,7 +1,7 @@
 /**
  * Bootstrap TouchSpin - Custom input spinner component for Bootstrap
  *
- * @version 1.0.3.2
+ * @version 1.0.4
  * @releaseDate 2025-06-19
  * @author Thomas Kirsch <t.kirsch@webcito.de>
  * @license MIT
@@ -22,7 +22,7 @@
 
         /**
          * Main plugin namespace containing configuration, utility methods and defaults
-         * @namespace
+         * @namespace .bs.touchspin
          */
         $.bsTouchspin = {
             setDefaults: function (options) {
@@ -71,6 +71,7 @@
                 startSpeed: 600,
                 delay: 1000,
                 locale: 'en-US',
+                inputMinWidth: 75,
                 maximumMax: (2 ** 31) - 1, // 2,147,483,647
                 maximumMin: -(2 ** 31) // -2,147,483,648
             },
@@ -138,6 +139,7 @@
             }
         };
 
+        const namespace = '.bs.touchspin';
         const wrapperClass = 'bs-touchspin-wrapper';
         const wrapperClassFormatted = 'bs-touchspin-formatted-wrapper';
 
@@ -287,14 +289,16 @@
                 const stopValue = numericValue;
                 const diff = parseFloat((stopValue - startValue).toFixed(decimals)); // Auf 2 Nachkommastellen runden
                 vars.startValue = null;
-                $input.trigger('stop.bs.touchspin', [stopValue, diff]);
+                $input.trigger(`stop${namespace}`, [stopValue, diff]);
                 if (typeof settings.onStop === 'function') {
                     settings.onStop(stopValue, diff); // Custom Callback ausführen
                 }
                 setVars($input, vars);
+
             }
 
             updateButtonStates($input);
+
 
             return numericValue;
         }
@@ -338,6 +342,7 @@
             toggleFormatted($input, true);
             // Aktualisiere den Zustand (Button aktivieren/deaktivieren etc.)
             updateButtonStates($input);
+            handleInputWidth($input);
         }
 
         /**
@@ -385,7 +390,7 @@
             const vars = getVars($input); // Holen der Instanz-Variablen
 
             if (vars.speed >= vars.minSpeed) {
-                vars.speed *= 0.9; // Geschwindigkeit verringern um 10%
+                vars.speed *= 0.95; // Geschwindigkeit verringern um 10%
             }
 
             changeValueByBtnClick($input);
@@ -406,12 +411,11 @@
         function events($input) {
             const wrapper = getWrapper($input);
             const settings = getSettings($input);
-            // const btnCheck = wrapper.find('[data-touchspin-man]');
             const btnDown = wrapper.find('[data-touchspin-down]');
             const btnUp = wrapper.find('[data-touchspin-up]');
 
             wrapper
-                .on('click', '.' + wrapperClassFormatted, function (e) {
+                .on(`click${namespace}`, '.' + wrapperClassFormatted, function (e) {
                     e.preventDefault();
                     const formattedWrapper = $(e.currentTarget);
                     const input = formattedWrapper.closest('.' + wrapperClass).find('input');
@@ -420,9 +424,8 @@
                         toggleFormatted(input, false);
                     }
                 })
-                .on('mousedown touchstart', '[data-touchspin-down], [data-touchspin-up]', function (e) {
+                .on(`mousedown${namespace} touchstart${namespace}`, '[data-touchspin-down], [data-touchspin-up]', function (e) {
                     e.preventDefault();
-                    // toggleFormatted($input, true);
                     const btn = $(e.currentTarget);
                     if (btn.prop('disabled')) {
                         return;
@@ -430,20 +433,17 @@
 
                     const input = btn.closest('.' + wrapperClass).find('input');
 
-                    // Stoppe alle laufenden Aktionen
                     clearAllTimers(input);
 
                     const vars = getVars(input);
-                    // btnCheck.hide();
                     input.prop('readonly', true);
 
                     vars.direction = btn.is(btnDown) ? -1 : 1;
                     vars.speed = $.bsTouchspin.config.startSpeed; // Reset Speed
 
                     if (!vars.isStarted) {
-                        // Trigger 'start.bs.touchspin' only on first start
                         const startValue = parseFloat(input.val()) || 0;
-                        input.trigger('start.bs.touchspin', [startValue]);
+                        input.trigger(`start${namespace}`, [startValue]);
                         vars.startValue = startValue;
                         vars.isStarted = true;
 
@@ -460,10 +460,9 @@
                         startIncrement(input);
                     }, 300);
 
-                    // Variablen aktualisieren
                     setVars(input, vars);
                 })
-                .on('mouseup mouseleave touchend', '[data-touchspin-down], [data-touchspin-up]', function (e) {
+                .on(`mouseup${namespace} mouseleave${namespace} touchend${namespace}`, '[data-touchspin-down], [data-touchspin-up]', function (e) {
                     e.preventDefault();
                     const btn = $(e.currentTarget);
                     const input = btn.closest('.' + wrapperClass).find('input');
@@ -475,7 +474,6 @@
                         return;
                     }
 
-                    // Stoppe alle laufenden Aktionen
                     clearAllTimers(input);
 
                     vars.stopDelay = setTimeout(function () {
@@ -484,66 +482,63 @@
                         const stopValue = parseFloat(input.val()) || 0;
                         const diff = parseFloat((stopValue - startValue).toFixed(settings.decimals));
                         vars.startValue = null;
-                        input.trigger('stop.bs.touchspin', [stopValue, diff]);
+                        input.trigger(`stop${namespace}`, [stopValue, diff]);
 
                         if (typeof settings.onStop === 'function') {
-                            settings.onStop(stopValue, diff); // Custom Callback ausführen
+                            settings.onStop(stopValue, diff);
                         }
-                        vars.isStarted = false; // Status zurücksetzen
+                        vars.isStarted = false;
                         setVars(input, vars);
                     }, $.bsTouchspin.config.delay);
 
                     setVars(input, vars);
                 });
 
-            $input.on('focusin', function (e) {
-                const input = $(e.currentTarget);
-                const settings = getSettings($input);
-                clearAllTimers(input);
-                const vars = getVars(input);
-                if (!vars.isStarted) {
-                    // Trigger 'start.bs.touchspin' only on first start
-                    const startValue = parseFloat(input.val()) || 0;
-                    input.trigger('start.bs.touchspin', [startValue]);
-                    vars.startValue = startValue;
-                    vars.isStarted = true;
-
-                    if (typeof settings.onStart === 'function') {
-                        settings.onStart(startValue); // Execute custom callback
-                    }
-                    setVars(input, vars);
-                }
-            })
-
-            let inputProcessed = false; // Status definieren
+            let inputProcessed = false;
 
             $input
-                .on('keydown', function (e) {
-                    if (e.key === "Enter") { // Prüfen, ob die Enter-Taste gedrückt wurde
-                        e.preventDefault(); // Standardaktionen stoppen
-                        e.stopPropagation(); // Event propagation stoppen
+                .on(`focusin${namespace}`, function (e) {
+                    const input = $(e.currentTarget);
+                    const settings = getSettings($input);
+                    clearAllTimers(input);
+                    const vars = getVars(input);
+                    if (!vars.isStarted) {
+                        const startValue = parseFloat(input.val()) || 0;
+                        input.trigger(`start${namespace}`, [startValue]);
+                        vars.startValue = startValue;
+                        vars.isStarted = true;
+
+                        if (typeof settings.onStart === 'function') {
+                            settings.onStart(startValue); // Execute custom callback
+                        }
+                        setVars(input, vars);
+                    }
+                })
+                .on(`keydown${namespace}`, function (e) {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
 
                         const input = $(e.currentTarget);
                         if (!inputProcessed) {
-                            handleInput(input); // Funktion nur aufrufen, wenn noch nicht verarbeitet
+                            handleInput(input); // Call function only if not yet processed
                             inputProcessed = true;
                         }
                     }
                 })
-                .on('blur', function (e) {
-                    e.stopPropagation(); // Event propagation stoppen
-
+                .on(`blur${namespace}`, function (e) {
+                    e.stopPropagation();
                     const input = $(e.currentTarget);
                     if (!inputProcessed) {
-                        handleInput(input); // Funktion nur aufrufen, wenn Enter nicht vorher aufgerufen wurde
+                        handleInput(input); // Call function only if Enter has not been called before
                         inputProcessed = true;
                     }
                 })
-                .on('focus', function () {
-                    // Bei Fokus zurücksetzen (neue Eingabe erlaubt)
+                .on(`focus${namespace}`, function () {
+                    // Reset on focus (new input allowed)
                     inputProcessed = false;
                 })
-                .on('keyup', function (e) {
+                .on(`keyup${namespace}`, function (e) {
                     e.preventDefault();
                     e.stopPropagation();
                     const input = $(e.currentTarget);
@@ -555,6 +550,7 @@
                         settings.step = data.step;
                         setSettings(input, settings);
                     }
+                    handleInputWidth(input)
                 });
 
             // Initialer Zustand der Buttons
@@ -575,6 +571,7 @@
             toggleFormatted($currentInput, true);
             vars.isStarted = false;
             setVars($currentInput, vars);
+            handleInputWidth($currentInput);
         }
 
         /**
@@ -643,7 +640,7 @@
                     $input.attr('type', 'text');
                     $input.focus();
                     $input[0].select();
-                    $input.trigger('focusin');
+                    $input.trigger(`focusin${namespace}`);
                 }
             }
         }
@@ -664,19 +661,18 @@
                 $input.appendTo($inputGroup);
             }
             $inputGroup.addClass(wrapperClass);
-            $inputGroup.addClass('flex-nowrap');
+            $inputGroup.addClass('flex-nowrap w-auto'); // set w-auto, because boostrap relies on the input group 100% width
             if ($.inArray(settings.size, ['sm', 'lg']) >= 0) {
                 $inputGroup.addClass('input-group-' + settings.size);
             }
             $input
                 .addClass('form-control text-center flex-grow-0')
-                .css({width: '150px'})
                 .attr('type', 'text');
 
             if (['string', 'function'].includes(typeof settings?.formatter)) {
                 $('<div>', {
-                    class: 'input-group-text px-2 d-flex justify-content-center user-select-none ' + wrapperClassFormatted,
-                }).insertAfter($input).css({width: '150px'})
+                    class: 'input-group-text d-flex justify-content-center user-select-none ' + wrapperClassFormatted,
+                }).insertAfter($input);
                 toggleFormatted($input, true);
             }
 
@@ -684,12 +680,13 @@
                 $input.prop('disabled', true);
             }
 
-            if (settings.prefix) {
-                $('<span>', {
-                    class: 'input-group-text px-2',
-                    html: settings.prefix,
-                }).prependTo($inputGroup);
-            }
+            $('<span>', {
+                'data-prefix': '',
+                class: 'input-group-text px-2',
+            }).prependTo($inputGroup);
+
+            setPrefix($input, settings.prefix);
+
             const btnMinWidth = settings.size === 'lg' ? 40 : 32;
             $('<button>', {
                 type: 'button',
@@ -701,12 +698,12 @@
                 html: `<i class="${settings.buttons.down.icon}"></i>`,
             }).prependTo($inputGroup);
 
-            if (settings.postfix) {
-                $('<span>', {
-                    class: 'input-group-text px-2',
-                    html: settings.postfix,
-                }).appendTo($inputGroup);
-            }
+            $('<span>', {
+                'data-postfix': '',
+                class: 'input-group-text px-2',
+            }).appendTo($inputGroup);
+
+            setPostfix($input, settings.postfix);
 
             $('<button>', {
                 type: 'button',
@@ -717,6 +714,133 @@
                 class: 'btn ' + settings.buttons.up.class,
                 html: `<i class="${settings.buttons.up.icon}"></i>`,
             }).appendTo($inputGroup);
+
+            handleInputWidth($input);
+        }
+
+        /**
+         * Calculates the required width of a given DOM element based on its content.
+         *
+         * @param {jQuery} $element - A jQuery-wrapped DOM element for which the width is to be calculated.
+         *                            Can be an input element or any other type of element containing text.
+         * @return {number} The calculated width in pixels, including the element's left and right padding.
+         */
+        function calculateNeededWidth($element) {
+            // Text-/Value-Inhalt des Elements holen
+            const value = $element.is('input') ? ($element.val() || '') : $element.text();
+
+            // Temporäres `<span>`-Element erstellen
+            const $tempSpan = $('<span>').text(value).css({
+                visibility: 'hidden',  // Ensure it is not visible
+                position: 'absolute',  // Completely remove it from the layout
+                top: '-9999px',        // Position it far outside the visible area
+                left: '-9999px',       // Position it far outside the visible area
+                whiteSpace: 'pre',     // Treat spaces and line breaks as in the original content
+                font: $element.css('font') || '14px Arial, sans-serif', // Full font style
+            }).appendTo('body');
+
+            // Breite berechnen
+            const inputWidth = Math.round(
+                $tempSpan.width() +
+                parseFloat($element.css('padding-left') || 0) +
+                parseFloat($element.css('padding-right') || 0)
+            );
+
+            $tempSpan.remove();
+
+            return inputWidth;
+        }
+
+        /**
+         * Adjusts the width of an input field and its associated formatted wrapper to ensure proper display,
+         * based on the calculated required width and a defined minimum width.
+         *
+         * @param {jQuery} $input - A jQuery object representing the input field whose width should be adjusted.
+         * @return {void} - This function does not return any value.
+         */
+        function handleInputWidth($input) {
+            const wrapper = getWrapper($input);
+            const wrapperFormatter = wrapper.find('.' + wrapperClassFormatted);
+            const minWidth = $.bsTouchspin.config.inputMinWidth;
+            let inputWidth = calculateNeededWidth($input);
+            if (wrapperFormatter.length) {
+                let formatterWidth = calculateNeededWidth(wrapperFormatter);
+                if (formatterWidth > inputWidth) {
+                    inputWidth = Math.max(formatterWidth, minWidth);
+                }
+            }
+            inputWidth = Math.round(Math.max(inputWidth, minWidth));
+
+            $input.css('width', inputWidth + 'px');
+            if (wrapperFormatter.length) {
+                wrapperFormatter.css('width', inputWidth + 'px');
+            }
+        }
+
+        /**
+         * Sets the postfix value for a given input element. Updates the DOM to either show or hide the postfix element based on the provided value.
+         *
+         * @param {jQuery} $input The jQuery object representing the input element.
+         * @param {string|null} [postfix=null] The text to set as the postfix. If null or empty, the postfix will be hidden.
+         * @return {void}
+         */
+        function setPostfix($input, postfix = null) {
+            const $postfix = $input.closest('.' + wrapperClass).find('[data-postfix]');
+            if ($postfix.length) {
+                const isEmpty = isValueEmpty(postfix);
+                const postfixHtml = !isEmpty ? postfix : '';
+                $postfix.html(postfixHtml);
+                if (isEmpty) {
+                    $postfix.addClass('d-none');
+                } else {
+                    $postfix.removeClass('d-none');
+                }
+            }
+        }
+
+        /**
+         * Updates the prefix displayed within the specified input element's wrapper.
+         *
+         * @param {jQuery} $input - The jQuery object representing the input element.
+         * @param {string|null} prefix - The prefix string to be set. If null or empty, the prefix will be hidden.
+         * @return {void} This function does not return a value.
+         */
+        function setPrefix($input, prefix = null) {
+            const $prefix = $input.closest('.' + wrapperClass).find('[data-prefix]');
+            if ($prefix.length) {
+                const isEmpty = isValueEmpty(prefix);
+                const prefixHtml = !isEmpty ? prefix : '';
+                $prefix.html(prefixHtml);
+                if (isEmpty) {
+                    $prefix.addClass('d-none');
+                } else {
+                    $prefix.removeClass('d-none');
+                }
+            }
+        }
+
+
+        /**
+         * Checks if the given value is empty. A value is considered empty if it is:
+         * - null
+         * - undefined
+         * - an empty array
+         * - a string containing only whitespace characters
+         *
+         * @param {*} value - The value to be checked for emptiness.
+         * @return {boolean} - Returns `true` if the value is empty, otherwise `false`.
+         */
+        function isValueEmpty(value) {
+            if (value === null || value === undefined) {
+                return true; // Null or undefined
+            }
+            if (Array.isArray(value)) {
+                return value.length === 0; // Empty array
+            }
+            if (typeof value === 'string') {
+                return value.trim().length === 0; // Empty string (including only spaces)
+            }
+            return false; // All other values are considered non-empty (including numbers)
         }
 
         /**
@@ -738,6 +862,33 @@
                 step: Math.pow(10, -decimals),
                 decimals: decimals
             }
+        }
+
+        /**
+         * Destroys the bsTouchspin instance by removing the wrapper,
+         * cleaning up the input data, and restoring the input to its original state.
+         *
+         * @param {jQuery} $input - The input element to be cleaned up and restored.
+         */
+        function destroyTouchspin($input) {
+            const wrapper = getWrapper($input);
+
+            if (wrapper.length) {
+                // Remove the input from the wrapper and place it back into the DOM
+                wrapper.before($input);
+                wrapper.remove(); // Remove the wrapper entirely
+            }
+            clearAllTimers($input);
+            // Restore the origin
+            const originInformation = $input.data('origin');
+            $input.attr('class', originInformation.class);
+            $input.attr('type', originInformation.type);
+            $input.attr('style', originInformation.style);
+
+            // Clean up plugin data and unbind events
+            $input
+                .removeData(['touchspin', 'vars', 'origin']) // Remove all related plugin data
+                .off(namespace);                       // Unbind only bs.touchspin-related event handlers
         }
 
 
@@ -767,6 +918,14 @@
             const $input = $(this);
 
             if (!$input.data('touchspin')) {
+                // Save the origin
+                const originInformation = {
+                    class: $input.attr('class') || '',
+                    style: $input.attr('style') || '',
+                    type: $input.attr('type') || '',
+                };
+                $input.data('origin', originInformation);
+
                 // Have we received an object?
                 const optionsGiven = typeof methodOrOption === 'object';
                 const options = optionsGiven ? methodOrOption : {};
@@ -812,7 +971,6 @@
                 // The same at min
                 if (settings.min === null) {
                     settings.min = $.bsTouchspin.config.maximumMin;
-                    ;
                 }
 
                 if (typeof settings.formatter === 'string') {
@@ -823,18 +981,21 @@
 
                 const vars = getVars($input);
                 vars.stepUnknown = stepUnknown;
-                setVars($input, vars); // Speicherprobleme möglich
-                setSettings($input, settings); // Fehlerhafte Konfigurationsobjekte könnten hier scheitern
-                buildTouchspin($input); // Initialisierungsfehler auf Touchspin könnten auftreten
-                events($input); // Event-Bindungsprobleme
-                const startValue = validateValue($input, false); // Validierungsfehler möglich
-                $input.trigger('init.bs.touchspin', [startValue]); // Eventtrigger-Fehler
+                setVars($input, vars);
+                setSettings($input, settings);
+                buildTouchspin($input);
+                events($input);
+                const startValue = validateValue($input, false);
+                setTimeout(function () {
+                    $input.trigger(`init${namespace}`, [startValue]);
+                }, 0)
                 if (typeof settings.onInit === 'function') {
                     settings.onInit(startValue);
                 }
             }
 
             const methodGiven = typeof methodOrOption === 'string';
+            let $return = $input;
             if (methodGiven) {
                 switch (methodOrOption) {
                     case 'val': {
@@ -843,10 +1004,33 @@
                         validateValue($input, false);
                         toggleFormatted($input, true);
                     }
+                        break;
+                    case 'setPrefix': {
+                        const prefix = args.length ? args[0] : null;
+                        const settings = getSettings($input);
+                        settings.prefix = prefix;
+                        setSettings($input, settings);
+                        setPrefix($input, prefix);
+                        handleInputWidth($input);
+                    }
+                        break;
+                    case 'setPostfix': {
+                        const postfix = args.length ? args[0] : null;
+                        const settings = getSettings($input);
+                        settings.postfix = postfix;
+                        setSettings($input, settings);
+                        setPostfix($input, postfix);
+                        handleInputWidth($input);
+                    }
+                        break;
+                    case 'destroy': {
+                        destroyTouchspin($input);
+                    }
+                        break;
                 }
             }
 
-            return $input;
+            return $return;
         };
     }
     (jQuery)
