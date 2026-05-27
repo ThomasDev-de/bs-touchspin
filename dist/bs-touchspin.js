@@ -1,8 +1,8 @@
 /**
  * Bootstrap TouchSpin - Custom input spinner component for Bootstrap
  *
- * @version 1.0.4
- * @releaseDate 2025-06-19
+ * @version 1.0.5
+ * @releaseDate 2026-05-27
  * @author Thomas Kirsch <t.kirsch@webcito.de>
  * @license MIT
  *
@@ -142,6 +142,7 @@
         const namespace = '.bs.touchspin';
         const wrapperClass = 'bs-touchspin-wrapper';
         const wrapperClassFormatted = 'bs-touchspin-formatted-wrapper';
+        const initializedDataKey = 'bsTouchspinInitialized';
 
         function formatNumber(number, decimalPlaces = 2) {
             return new Intl.NumberFormat('de-DE', {
@@ -169,6 +170,7 @@
          */
         function setSettings($input, settings) {
             $input.data('touchspin', settings);
+            $input.data(initializedDataKey, true);
         }
 
         /**
@@ -183,6 +185,10 @@
          */
         const getWrapper = function ($input) {
             return $input.closest('.' + wrapperClass);
+        }
+
+        function hasTouchspinMarkup($input) {
+            return getWrapper($input).length > 0;
         }
 
         /**
@@ -888,6 +894,7 @@
             // Clean up plugin data and unbind events
             $input
                 .removeData(['touchspin', 'vars', 'origin']) // Remove all related plugin data
+                .removeData(initializedDataKey)
                 .off(namespace);                       // Unbind only bs.touchspin-related event handlers
         }
 
@@ -917,7 +924,8 @@
 
             const $input = $(this);
 
-            if (!$input.data('touchspin')) {
+            const isInitialized = Boolean($input.data(initializedDataKey) || $input.data('touchspin') || hasTouchspinMarkup($input));
+            if (!isInitialized) {
                 // Save the origin
                 const originInformation = {
                     class: $input.attr('class') || '',
