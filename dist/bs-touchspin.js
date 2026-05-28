@@ -1,8 +1,8 @@
 /**
  * Bootstrap TouchSpin - Custom input spinner component for Bootstrap
  *
- * @version 1.0.5
- * @releaseDate 2026-05-27
+ * @version 1.0.6
+ * @releaseDate 2026-05-28
  * @author Thomas Kirsch <t.kirsch@webcito.de>
  * @license MIT
  *
@@ -59,6 +59,7 @@
                     }
                 },
                 formatter: 'number',
+                currency: 'EUR',
                 onInit: function (value) {
                 },
                 onStart: function (value) {
@@ -128,10 +129,10 @@
                  * @param {string} [locale='en-US'] - The locale identifier used to format the currency string.
                  * @return {string} The formatted currency string.
                  */
-                formatCurrency(value, decimals = 2, locale = 'en-US') {
+                formatCurrency(value, decimals = 2, locale = 'en-US', currency = 'EUR') {
                     return new Intl.NumberFormat(locale, {
                         style: 'currency',
-                        currency: 'EUR',
+                        currency: currency,
                         minimumFractionDigits: decimals,
                         maximumFractionDigits: decimals
                     }).format(value);
@@ -620,7 +621,7 @@
                 let format;
                 switch (settings.formatter) {
                     case 'currency': {
-                        format = $.bsTouchspin.utils.formatCurrency($input.val(), settings.decimals, $.bsTouchspin.config.locale);
+                        format = $.bsTouchspin.utils.formatCurrency($input.val(), settings.decimals, $.bsTouchspin.config.locale, settings.currency);
                     }
                         break;
                     case 'percent': {
@@ -633,7 +634,11 @@
                 }
                 $formattedWrapper.html('<div>' + format + '</div>');
             } else if (typeof settings.formatter === 'function') {
-                settings.formatter($input.val(), settings.decimals, $.bsTouchspin.config.locale)
+                format = settings.formatter($input.val(), settings.decimals, $.bsTouchspin.config.locale, settings.currency);
+                if (typeof format === 'undefined' || format === null) {
+                    format = $input.val();
+                }
+                $formattedWrapper.html('<div>' + format + '</div>');
             }
             if ($formattedWrapper.length) {
                 if (show) {
@@ -890,6 +895,12 @@
             $input.attr('class', originInformation.class);
             $input.attr('type', originInformation.type);
             $input.attr('style', originInformation.style);
+            if (typeof originInformation.disabled !== 'undefined') {
+                $input.prop('disabled', originInformation.disabled);
+            }
+            if (typeof originInformation.readonly !== 'undefined') {
+                $input.prop('readonly', originInformation.readonly);
+            }
 
             // Clean up plugin data and unbind events
             $input
@@ -918,7 +929,7 @@
         $.fn.bsTouchspin = function (methodOrOption, ...args) {
             if ($(this).length > 1) {
                 return $(this).each(function (i, el) {
-                    return $(el).bsTouchspin(methodOrOption);
+                    return $(el).bsTouchspin(methodOrOption, ...args);
                 });
             }
 
@@ -931,6 +942,8 @@
                     class: $input.attr('class') || '',
                     style: $input.attr('style') || '',
                     type: $input.attr('type') || '',
+                    disabled: $input.prop('disabled'),
+                    readonly: $input.prop('readonly'),
                 };
                 $input.data('origin', originInformation);
 
