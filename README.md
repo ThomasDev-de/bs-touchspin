@@ -137,6 +137,7 @@ Below is the full list of default options for the `bsTouchspin` plugin:
 |----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|----------------------------------------------|
 | `size`                     | Sets the size of the input. Acceptable values: `null`, `sm`, or `lg`.                                                                                                                                                       | `string` or `null`     | `null`                                       |
 | `step`                     | Defines the step size for increments or decrements. Set to `"any"` for dynamic step size.                                                                                                                                   | `number` or `string`   | `"any"`                                      |
+| `decimals`                 | Fixed number of decimal places for value normalization and display. If set, it overrides step-derived decimals.                                                                                                             | `number` or `null`     | `null`                                       |
 | `min`                      | The minimum value allowed for the input.                                                                                                                                                                                    | `number` or `null`     | `null`                                       |
 | `max`                      | The maximum value allowed for the input.                                                                                                                                                                                    | `number` or `null`     | `null`                                       |
 | `prefix`                   | Prefix text or symbol shown before the input value.                                                                                                                                                                         | `string` or `null`     | `null`                                       |
@@ -194,6 +195,7 @@ $('#example-spinner').bsTouchspin('val', 150); // The value will be set to 100 s
 
 - The applied value respects any configured formatting via options like `formatter` (e.g., currency or percentage).
 - Direct external value assignments like `$input.val('1')` or `$input.prop('value', '1')` are not automatically processed by the plugin UI lifecycle. To keep validation, formatting, button states, and width updates in sync, use `$('#example-spinner').bsTouchspin('val', 1)`.
+- For fixed precision independent from step size, set `decimals` explicitly. Example: `step: 0.01` with `decimals: 4` increments by `0.01` and displays values like `1.2300`.
 
 ### `setPrefix`
 

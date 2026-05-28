@@ -35,12 +35,12 @@
                     small size
                 </div>
                 <div class="card-body">
-                    <pre><code class="html">&lt;input id="input_2" type="number" data-formatter="currency" data-currency="USD" data-step=".01" data-size="sm" data-min="-10000" data-max="10000" value="5"&gt;</code></pre>
+                    <pre><code class="html">&lt;input id="input_2" type="number" data-formatter="currency" data-currency="USD" data-step=".01" data-decimals="4" data-size="sm" data-min="-10000" data-max="10000" value="5"&gt;</code></pre>
                     <pre><code class="javascript">$('#input_2').bsTouchspin();</code></pre>
                 </div>
                 <div class="card-footer d-flex justify-content-center align-items-center" style="height: 100px">
                     <label for="input_2" class="form-label d-none">sm</label>
-                    <input type="number" data-formatter="currency" data-currency="USD" data-step=".01" data-size="sm" data-min="-10000" data-max="10000" value="5"
+                    <input type="number" data-formatter="currency" data-currency="USD" data-step=".01" data-decimals="4" data-size="sm" data-min="-10000" data-max="10000" value="5"
                            id="input_2">
                 </div>
             </div>
@@ -105,7 +105,9 @@
         $('#input_2').bsTouchspin({
             size: 'sm',
             formatter: 'currency',
-            currency: 'USD'
+            currency: 'USD',
+            step: 0.01,
+            decimals: 4
         });
 
         // setTimeout(() => {

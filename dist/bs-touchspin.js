@@ -1,7 +1,7 @@
 /**
  * Bootstrap TouchSpin - Custom input spinner component for Bootstrap
  *
- * @version 1.0.6
+ * @version 1.0.7
  * @releaseDate 2026-05-28
  * @author Thomas Kirsch <t.kirsch@webcito.de>
  * @license MIT
@@ -973,15 +973,25 @@
                 }
 
                 let stepUnknown = false;
+                const hasExplicitDecimals = !(settings.decimals === null || typeof settings.decimals === 'undefined' || settings.decimals === '');
+                if (hasExplicitDecimals) {
+                    settings.decimals = Math.max(0, parseInt(settings.decimals, 10) || 0);
+                }
 
                 // Determine how many decimal places the number has
                 if (settings.step === 'any') {
-                    stepUnknown = true;
-                    const data = calculateStepByUnknown($input);
-                    settings.decimals = data.decimals;
-                    settings.step = data.step;
+                    if (hasExplicitDecimals) {
+                        settings.step = Math.pow(10, -settings.decimals);
+                    } else {
+                        stepUnknown = true;
+                        const data = calculateStepByUnknown($input);
+                        settings.decimals = data.decimals;
+                        settings.step = data.step;
+                    }
                 } else {
-                    settings.decimals = $.bsTouchspin.utils.getDecimalBySteps(settings.step);
+                    if (!hasExplicitDecimals) {
+                        settings.decimals = $.bsTouchspin.utils.getDecimalBySteps(settings.step);
+                    }
                 }
 
                 // If max is also not found, set the highest possible number

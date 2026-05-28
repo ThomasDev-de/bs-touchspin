@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.0.7 - 2026-05-28
+
+- Added explicit `decimals` option support to decouple display precision from `step` size.
+- `step: 0.01` can now be combined with `decimals: 4` (e.g. display/value `0.0100` increments).
+- When `step: "any"` is used with explicit `decimals`, step is derived from decimals (`10^-decimals`) instead of dynamic step detection.
+- Updated demo and README to document and show fixed-decimal currency usage.
+
 ## 1.0.6 - 2026-05-28
 
 - Fixed method argument forwarding for multi-element jQuery selections (for example `.bsTouchspin('val', 10)` now applies correctly to each matched input).
