@@ -1,7 +1,7 @@
 /**
  * Bootstrap TouchSpin - Custom input spinner component for Bootstrap
  *
- * @version 1.0.7
+ * @version 1.0.8
  * @releaseDate 2026-05-28
  * @author Thomas Kirsch <t.kirsch@webcito.de>
  * @license MIT
@@ -152,6 +152,30 @@
             }).format(number);
         }
 
+        function toFiniteNumber(value, fallback = null) {
+            if (value === null || value === undefined || value === '') {
+                return fallback;
+            }
+
+            let normalized = String(value).trim();
+            const lastComma = normalized.lastIndexOf(',');
+            const lastDot = normalized.lastIndexOf('.');
+
+            if (lastComma >= 0 && lastDot >= 0) {
+                // Bei beiden Trennzeichen ist das zuletzt vorkommende das Dezimalzeichen.
+                if (lastComma > lastDot) {
+                    normalized = normalized.replace(/\./g, '').replace(',', '.');
+                } else {
+                    normalized = normalized.replace(/,/g, '');
+                }
+            } else if (lastComma >= 0) {
+                normalized = normalized.replace(',', '.');
+            }
+
+            const number = Number(normalized);
+            return Number.isFinite(number) ? number : fallback;
+        }
+
         /**
          * Retrieves the settings associated with the specified input element.
          *
@@ -264,7 +288,7 @@
         function validateValue($input, isFinal = false) {
             const wrapper = getWrapper($input);
             const settings = getSettings($input);
-            let inputValue = $input.val();
+            let inputValue = String($input.val() ?? '');
             const vars = getVars($input);
 
             inputValue = inputValue.replace(',', '.');
@@ -867,7 +891,7 @@
          *                  - decimals: The number of decimal places in the input value.
          */
         function calculateStepByUnknown($input) {
-            const currentValue = $input.val().replace(',', '.') || 0;
+            const currentValue = String($input.val() ?? '').replace(',', '.') || 0;
             const decimals = $.bsTouchspin.utils.getDecimalBySteps(currentValue);
             return {
                 step: Math.pow(10, -decimals),
@@ -953,13 +977,13 @@
                 // If we have an input of type number and can determine step min and max from it, these values are preferred.
                 const inputNumber = {};
                 if ($input.attr('step')) {
-                    inputNumber.step = parseFloat($input.attr('step'));
+                    inputNumber.step = toFiniteNumber($input.attr('step'));
                 }
                 if ($input.attr('min')) {
-                    inputNumber.min = parseFloat($input.attr('min'));
+                    inputNumber.min = toFiniteNumber($input.attr('min'));
                 }
                 if ($input.attr('max')) {
-                    inputNumber.max = parseFloat($input.attr('max'));
+                    inputNumber.max = toFiniteNumber($input.attr('max'));
                 }
                 // Assemble the setup
                 // 1. From the standards
@@ -967,6 +991,11 @@
                 // 3. The data attributes of the input
                 // 4. the classic input attributes
                 const settings = $.extend(true, {}, $.bsTouchspin.defaults, options, $input.data() || {}, inputNumber);
+                if (settings.step !== 'any') {
+                    settings.step = toFiniteNumber(settings.step, 1);
+                }
+                settings.min = toFiniteNumber(settings.min);
+                settings.max = toFiniteNumber(settings.max);
                 // If no step was found, set it to any for now
                 if (!settings.step) {
                     settings.step = 'any';
@@ -1030,7 +1059,7 @@
             if (methodGiven) {
                 switch (methodOrOption) {
                     case 'val': {
-                        const newValue = parseFloat(args.length ? args[0] : 0);
+                        const newValue = toFiniteNumber(args.length ? args[0] : 0, 0);
                         $input.val(newValue);
                         validateValue($input, false);
                         toggleFormatted($input, true);

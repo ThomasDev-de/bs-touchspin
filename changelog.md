@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.0.8 - 2026-09-16
+
+- Added German number parsing for values such as `1,5` and `1.000,5`.
+- Added validation and safe fallbacks for invalid numeric `step`, `min`, and `max` settings to prevent `NaN` values.
+
 ## 1.0.7 - 2026-05-28
 
 - Added explicit `decimals` option support to decouple display precision from `step` size.
