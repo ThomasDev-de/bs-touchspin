@@ -291,10 +291,8 @@
             let inputValue = String($input.val() ?? '');
             const vars = getVars($input);
 
-            inputValue = inputValue.replace(',', '.');
-
-            let numericValue = parseFloat(inputValue);
-            if (isNaN(numericValue)) {
+            let numericValue = toFiniteNumber(inputValue);
+            if (numericValue === null) {
                 numericValue = isFinal ? 0 : null;
             }
 
